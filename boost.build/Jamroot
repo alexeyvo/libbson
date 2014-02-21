@@ -1,12 +1,17 @@
+import os ;
+local BOOST_ROOT_PATH = [ os.environ BOOST_ROOT ] ;
+
 project bson_main 
-     : requirements <include>../bson
+     : requirements <include>./bson
+                    <include>../bson
                     <include>../yajl
-                    <include>../cmake_build/bson
                     <include>../
+                    <include>$(BOOST_ROOT_PATH)
+
                     <define>bson_shared_EXPORTS
-                    <define>BSON_COMPILATION
+                    <define>BSON_COMPILATION                    
      : source-location ../
-     : build-dir ./build.dir ; 
+     : build-dir ./build.dir ;
 
 SOURCES_FILES = 
 	bson/bcon.c

@@ -48,6 +48,6 @@ lib libbson-1.0 : $(SOURCES_FILES) : <toolset>msvc
                                   <def-file>build/win32/libbson.def ;
 
 lib libbson-1.0 : $(SOURCES_FILES) : <toolset>gcc
-                                  <cxxflags>-std=c99
+                                  <cxxflags>-std=gnu99  #c99
                                   <linkflags>-lws2_32
                                   <def-file>build/win32/libbson.def ;

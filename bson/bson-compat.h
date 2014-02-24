@@ -63,7 +63,11 @@ BSON_BEGIN_DECLS
 #ifdef _MSC_VER
 #  include "bson-stdint-win32.h"
    typedef SSIZE_T ssize_t;
+
+# ifndef __cplusplus
    typedef SIZE_T size_t;
+#endif
+
 #  define PRIi32 "d"
 #  define PRId32 "d"
 #  define PRIu32 "u"

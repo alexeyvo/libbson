@@ -318,14 +318,13 @@ bson_strcpy_w_null (char       *dst,
 #endif
 }
 
-
 int
 bson_vsnprintf (char       *str,
                 size_t      size,
                 const char *format,
                 va_list     ap)
 {
-#ifdef BSON_OS_WIN32
+#if defined(BSON_OS_WIN32) && !defined(BOOST_GCC)
    int r = -1;
 
    BSON_ASSERT (str);

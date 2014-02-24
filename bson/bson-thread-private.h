@@ -32,7 +32,7 @@
 BSON_BEGIN_DECLS
 
 
-#if defined(BSON_OS_UNIX)
+#if defined(BSON_OS_UNIX) || defined(BOOST_GCC)
 #  include <pthread.h>
 #  define bson_mutex_t                    pthread_mutex_t
 #  define bson_mutex_init(_n)             pthread_mutex_init((_n), NULL)

@@ -110,6 +110,8 @@ bson_strerror_r (int     err_code,  /* IN */
 
 #if defined(__GNUC__) && defined(_GNU_SOURCE)
    ret = strerror_r (err_code, buf, buflen);
+#elif defined(_WIN32) && defined(BOOST_GCC)
+   ret = strerror(err_code);
 #elif defined(_WIN32)
    if (strerror_s (buf, buflen, err_code) != 0) {
       ret = buf;

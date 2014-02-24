@@ -132,8 +132,8 @@ bson_get_monotonic_time (void)
    }
 
    return (mach_absolute_time() * ratio);
-#elif defined(_WIN32)
-   return GetTickCount64 ();
+#elif defined(_WIN32) && !defined(BOOST_GCC)
+   return GetTickCount64();
 #else
 # warning "Monotonic clock is not yet supported on your platform."
    struct timeval tv;

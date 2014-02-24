@@ -9,7 +9,7 @@ project bson_main
                     <include>$(BOOST_ROOT_PATH)
 
                     <define>bson_shared_EXPORTS
-                    <define>BSON_COMPILATION  
+                    <define>BSON_COMPILATION                      
  #                   <target-os>windows:<toolset>gcc <define>WIN_MINGW_GCC_BOOST_BUILD                  
      : source-location ../
      : build-dir ./build.dir ;
@@ -47,7 +47,9 @@ lib libbson-1.0 : $(SOURCES_FILES) : <toolset>msvc
                                   <linkflags>/DEFAULTLIB:Ws2_32.lib
                                   <def-file>build/win32/libbson.def ;
 
-lib libbson-1.0 : $(SOURCES_FILES) : <toolset>gcc
-                                  <cxxflags>-std=gnu99  #c99
+lib libbson-1.0 : $(SOURCES_FILES) : <toolset>gcc									 
+                                  <cxxflags>-std=gnu99  #c99                                  
                                   <linkflags>-lws2_32
+                                  <linkflags>-lkernel32
+                                  <linkflags>-lpthread
                                   <def-file>build/win32/libbson.def ;

@@ -17,3 +17,12 @@ This fork:
 -- to install boost you have to download it. Call bootstrap for your system. Add boost root into PATH. Declare BOOST_ROOT folder. That's all. you can call b2 from boost.build folder.
 
 The main cause why did I do this: I use boost.build for my project. And using boost.build is pretty convenient for it.
+
+
+GCC -- MINGW -- windows
+For Win32 it could be built with the followint command. Pay attention on instruction-set. 
+By default boost uses i486 (from 1.55, and i386 before). But this instruction set does not support CPU sync primitives
+# b2 toolset=gcc variant=debug threading=multi instruction-set=i686
+
+For 64 bit architecture use something like (make sure MINGW 64 bit is installed and accessible)
+# b2 toolset=gcc variant=debug threading=multi address-model=64

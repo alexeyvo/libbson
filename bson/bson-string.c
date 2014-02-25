@@ -324,7 +324,7 @@ bson_vsnprintf (char       *str,
                 const char *format,
                 va_list     ap)
 {
-#if defined(BSON_OS_WIN32) && !defined(BOOST_GCC)
+#if defined(BSON_OS_WIN32) && !defined(MNT_BSON_WINMINGW)
    int r = -1;
 
    BSON_ASSERT (str);

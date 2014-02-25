@@ -1,0 +1,54 @@
+import os ;
+local BOOST_ROOT_PATH = [ os.environ BOOST_ROOT ] ;
+
+use-project /libbson : ../ ;
+
+project bson_main_test 
+     : requirements <include>../bson
+                    <include>../../bson
+                    <include>../../yajl
+                    <include>../../
+                    <include>../../tests
+                    <include>$(BOOST_ROOT_PATH)
+                    <library>//libbson
+                    <toolset>gcc,<target-os>windows:<define>MNT_BSON_WINMINGW
+     : source-location ../../
+     : build-dir ./build-test.dir ;
+
+SOURCES_FILES = 
+	tests/TestSuite.c
+  tests/test-atomic.c
+  tests/test-bcon-basic.c
+	tests/test-bcon-extract.c
+	tests/test-bson.c
+	tests/test-clock.c
+	tests/test-endian.c
+	tests/test-error.c
+	tests/test-iter.c
+	tests/test-json.c
+	tests/test-libbson.c
+	tests/test-oid.c
+	tests/test-reader.c
+	tests/test-string.c
+	tests/test-utf8.c
+	tests/test-writer.c
+;
+
+exe libbson-1.0-test : $(SOURCES_FILES) : <toolset>msvc
+                                  <cxxflags>/TC
+                                  <cxxflags>/RTC1
+                                  <linkflags>/DEFAULTLIB:Ws2_32.lib
+ ;
+
+exe libbson-1.0-test : $(SOURCES_FILES) : <toolset>gcc									 
+                                  <cxxflags>-std=gnu99  #c99                                  
+                                  <linkflags>-lws2_32                                  
+                                  <linkflags>-lpthread
+                                  <def-file>build/win32/libbson.def ;
+
+
+#install gtu : libbson-1.0-test : 
+#           <install-dependencies>on <install-type>EXE
+#           <install-type>LIB
+#           <location>../tst
+#       ;

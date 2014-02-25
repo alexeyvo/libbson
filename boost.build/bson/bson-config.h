@@ -19,11 +19,12 @@
 #define BSON_CONFIG_H
 
 #include <boost/config.hpp>
+ #include <boost/detail/endian.hpp>
 /*
  * BSON_BYTE_ORDER is used to define the current endianness.  If big endian, it
  * will be 4321. If little endian, it will be 1234.
  */
-#include <boost/detail/endian.hpp>
+
 #define BSON_BYTE_ORDER BOOST_BYTE_ORDER
 
 
@@ -35,6 +36,13 @@
    #define BSON_OS 2
 #else
    #define BSON_OS 1
+#endif
+
+// SOMETIMES MINGW requires hacks. So we need special definition
+#ifdef BOOST_WINDOWS
+   #ifdef BOOST_GCC
+      #define MNT_BSON_WINMINGW
+   #endif
 #endif
 
 #endif /* BSON_CONFIG_H */

@@ -24,7 +24,7 @@ AC_PREREQ([2.61])
 AC_INIT([libbson],[bson_version],[https://github.com/mongodb/libbson/issues])
 
 AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_MACRO_DIR([build/m4])
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES],
 	 [AC_SUBST([AM_DEFAULT_VERBOSITY], [1])])
@@ -135,7 +135,14 @@ dnl Check for Required Headers
 dnl **************************************************************************
 AC_CREATE_STDINT_H([bson/bson-stdint.h])
 
+# stdbool.h
 AC_HEADER_STDBOOL
+BSON_HAVE_STDBOOL_H=0
+if test "$ac_cv_header_stdbool_h" = "yes" ; then
+	BSON_HAVE_STDBOOL_H=1
+fi
+AC_SUBST([BSON_HAVE_STDBOOL_H])
+
 
 dnl **************************************************************************
 dnl Check for Python Support
@@ -158,7 +165,7 @@ AM_CONDITIONAL([HAVE_PYTHON], [test "x$ax_python_header" != "xno"])
 dnl **************************************************************************
 dnl Check for necessary libraries.
 dnl **************************************************************************
-AC_CHECK_FUNCS(posix_memalign memalign strnlen)
+AC_CHECK_FUNCS(strnlen snprintf)
 
 AC_SEARCH_LIBS([clock_gettime], [rt], [
 	AC_DEFINE(HAVE_CLOCK_GETTIME, 1, [Have clock_gettime])

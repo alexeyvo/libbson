@@ -41,6 +41,11 @@
 # include <windows.h>
 #endif
 
+#if defined(HAVE_CLOCK_GETTIME)
+# include <time.h>
+# include <sys/time.h>
+#endif
+
 #include "TestSuite.h"
 
 
@@ -114,7 +119,7 @@ Thread_Create (Thread *thread,
 #endif
 
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(HAVE_SNPRINTF)
 static int
 snprintf (char *str,
           size_t size,
@@ -141,7 +146,7 @@ snprintf (char *str,
 void
 _Clock_GetMonotonic (struct timespec *ts) /* OUT */
 {
-#if defined(HAVE_CLOCK_GETTIME)
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)
    clock_gettime (CLOCK_MONOTONIC, ts);
 #elif defined(__APPLE__)
    static mach_timebase_info_data_t info = { 0 };
@@ -501,7 +506,8 @@ TestSuite_PrintJsonHeader (TestSuite *suite, /* IN */
    }
 
    pagesize = sysconf (_SC_PAGE_SIZE);
-#  ifdef __linux__
+
+#  if defined(_SC_PHYS_PAGES)
    npages = sysconf (_SC_PHYS_PAGES);
 #  endif
 

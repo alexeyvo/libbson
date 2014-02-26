@@ -340,8 +340,8 @@ _bson_json_read_boolean (void *_ctx, /* IN */
 
 
 static int
-_bson_json_read_integer (void     *_ctx, /* IN */
-                         long long val)  /* IN */
+_bson_json_read_integer (void    *_ctx, /* IN */
+                         int64_t  val)  /* IN */
 {
    bson_json_read_state_t rs;
    bson_json_read_bson_state_t bs;
@@ -533,6 +533,24 @@ _bson_json_read_start_map (void *_ctx) /* IN */
 }
 
 
+static bool
+_is_known_key (const char *key)
+{
+   return ((0 == strcmp (key, "$regex")) ||
+           (0 == strcmp (key, "$options")) ||
+           (0 == strcmp (key, "$oid")) ||
+           (0 == strcmp (key, "$binary")) ||
+           (0 == strcmp (key, "$type")) ||
+           (0 == strcmp (key, "$date")) ||
+           (0 == strcmp (key, "$ref")) ||
+           (0 == strcmp (key, "$id")) ||
+           (0 == strcmp (key, "$undefined")) ||
+           (0 == strcmp (key, "$maxkey")) ||
+           (0 == strcmp (key, "$minkey")) ||
+           (0 == strcmp (key, "$timestamp")));
+}
+
+
 static int
 _bson_json_read_map_key (void          *_ctx, /* IN */
                          const uint8_t *val,  /* IN */
@@ -542,7 +560,7 @@ _bson_json_read_map_key (void          *_ctx, /* IN */
    bson_json_reader_bson_t *bson = &reader->bson;
 
    if (bson->read_state == BSON_JSON_IN_START_MAP) {
-      if (len > 0 && val[0] == '$') {
+      if (len > 0 && val[0] == '$' && _is_known_key ((const char *)val)) {
          bson->read_state = BSON_JSON_IN_BSON_TYPE;
          bson->bson_type = 0;
          memset (&bson->bson_type_data, 0, sizeof bson->bson_type_data);
@@ -1100,10 +1118,10 @@ bson_new_from_json (const uint8_t *data,  /* IN */
 
 
 bool
-bson_init_from_json (bson_t        *bson,  /* OUT */
-                     const uint8_t *data,  /* IN */
-                     size_t         len,   /* IN */
-                     bson_error_t  *error) /* OUT */
+bson_init_from_json (bson_t       *bson,  /* OUT */
+                     const char   *data,  /* IN */
+                     ssize_t       len,   /* IN */
+                     bson_error_t *error) /* OUT */
 {
    bson_json_reader_t *reader;
    int r;
@@ -1111,10 +1129,14 @@ bson_init_from_json (bson_t        *bson,  /* OUT */
    bson_return_val_if_fail (bson, NULL);
    bson_return_val_if_fail (data, NULL);
 
+   if (len < 0) {
+      len = strlen (data);
+   }
+
    bson_init (bson);
 
    reader = bson_json_data_reader_new (false, BSON_JSON_DEFAULT_BUF_SIZE);
-   bson_json_data_reader_ingest (reader, data, len);
+   bson_json_data_reader_ingest (reader, (const uint8_t *)data, len);
    r = bson_json_reader_read (reader, bson, error);
    bson_json_reader_destroy (reader);
 

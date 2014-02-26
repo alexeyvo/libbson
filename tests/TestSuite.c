@@ -119,7 +119,7 @@ Thread_Create (Thread *thread,
 #endif
 
 
-#if defined(_WIN32) && !defined(HAVE_SNPRINTF)
+#if defined(_WIN32) && !defined(HAVE_SNPRINTF) && !defined( MNT_BSON_WINMINGW)
 static int
 snprintf (char *str,
           size_t size,
@@ -161,12 +161,18 @@ _Clock_GetMonotonic (struct timespec *ts) /* OUT */
    atime = mach_absolute_time() * ratio;
    ts->tv_sec = atime * 1e-9;
    ts->tv_nsec = atime - (ts->tv_sec * 1e9);
-#elif defined(_WIN32)
+#elif defined(_WIN32) && !defined(MNT_BSON_WINMINGW)
    ULONGLONG ticks = GetTickCount64 ();
    ts->tv_sec = ticks / NANOSEC_PER_SEC;
    ts->tv_nsec = ticks % NANOSEC_PER_SEC;
 #else
-# warning "Monotonic clock is not yet supported on your platform."
+    # warning "Monotonic clock is not yet supported on your platform."
+	struct timeval tv;
+	
+	gettimeofday (&tv, NULL);
+
+	ts->tv_sec = tv.tv_sec;
+	ts->tv_nsec = tv.tv_usec * 1000.0;
 #endif
 }
 

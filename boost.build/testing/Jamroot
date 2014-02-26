@@ -47,8 +47,13 @@ exe libbson-1.0-test : $(SOURCES_FILES) : <toolset>gcc
                                   <def-file>build/win32/libbson.def ;
 
 
-#install gtu : libbson-1.0-test : 
-#           <install-dependencies>on <install-type>EXE
-#           <install-type>LIB
-#           <location>../tst
-#       ;
+install gtu : libbson-1.0-test : 
+           <install-dependencies>on <install-type>EXE
+                                    <install-type>LIB
+                                    <install-type>SHARED_LIB
+           <location>./last-compiled/
+       ;
+
+install gtu-data : [ glob  tests/binary/*.bson ] :
+           <location>./last-compiled/tests/binary
+       ;

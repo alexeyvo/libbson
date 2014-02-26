@@ -42,7 +42,7 @@ exe libbson-1.0-test : $(SOURCES_FILES) : <toolset>msvc
 
 exe libbson-1.0-test : $(SOURCES_FILES) : <toolset>gcc									 
                                   <cxxflags>-std=gnu99  #c99                                  
-                                  <linkflags>-lws2_32                                  
+                                  <target-os>windows:<linkflags>-lws2_32                                  
                                   <linkflags>-lpthread
                                   <def-file>build/win32/libbson.def ;
 

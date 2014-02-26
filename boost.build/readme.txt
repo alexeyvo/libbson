@@ -26,3 +26,19 @@ By default boost uses i486 (from 1.55, and i386 before). But this instruction se
 
 For 64 bit architecture use something like (make sure MINGW 64 bit is installed and accessible)
 # b2 toolset=gcc variant=debug threading=multi address-model=64
+
+
+Installing BOOST
+== download boost package from boost.org
+== unpack it
+== Enter into its root directory (THIS WILL BE A BOOST_ROOT). It contains bootstrap.cmd Jamroot files so on; boost and libs folders.
+== Compile it with MinGW use the following
+	# > bootstrap.bat mingw
+	To compile with Visual Studio
+	# > bootstrap.bat
+== Makesure b2 appeared
+== Declare BOOST_ROOT environment variable. Make sure that it does not have trailing space
+== Update PATH environment variable. 
+
+
+

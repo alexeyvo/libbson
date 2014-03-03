@@ -2,28 +2,34 @@ EXTRA_DIST =
 CLEANFILES =
 DISTCLEANFILES =
 
-include yajl/Makefile.include
-include bson/Makefile.include
-include tests/Makefile.include
-include examples/Makefile.include
-include doc/Makefile.include
+bin_PROGRAMS =
+lib_LTLIBRARIES =
+noinst_PROGRAMS =
 
-if HAVE_PYTHON
-include bindings/python/Makefile.include
-endif
+libbson_srcdir = $(top_srcdir)
+libbson_builddir = $(top_builddir)
 
-ACLOCAL_AMFLAGS = -I build/m4 ${ACLOCAL_FLAGS}
+AM_CPPFLAGS = \
+	-DBSON_COMPILATION \
+	-D_BSD_SOURCE \
+	-D_GNUC_SOURCE
+
+include src/Makefile.am
+include src/bson/Makefile.am
+include src/yajl/Makefile.am
+include src/bindings/python/Makefile.am
+include tests/Makefile.am
+include examples/Makefile.am
+include doc/Makefile.am
+
+ACLOCAL_AMFLAGS = -I build/autotools/m4 ${ACLOCAL_FLAGS}
 DISTCHECK_CONFIGURE_FLAGS = --enable-silent-rules
 
 bsondocdir = ${docdir}
-bsondoc_DATA =
-bsondoc_DATA += COPYING
-bsondoc_DATA += NEWS
-bsondoc_DATA += README
-
-pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA =
-pkgconfig_DATA += $(top_builddir)/bson/libbson-1.0.pc
+bsondoc_DATA = \
+	COPYING \
+	NEWS \
+	README
 
 EXTRA_DIST += $(bsondoc_DATA)
 

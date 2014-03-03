@@ -1,5 +1,7 @@
 import os ;
 local BOOST_ROOT_PATH = [ os.environ BOOST_ROOT ] ;
+local WinShockLib = shell32 ;  #ws2_32 OR shell32
+
 
 project bson_main 
      : requirements <include>./bson
@@ -11,6 +13,10 @@ project bson_main
                     <define>bson_shared_EXPORTS
                     <define>BSON_COMPILATION                      
                     <toolset>gcc,<target-os>windows:<define>MNT_BSON_WINMINGW
+     : usage-requirements 
+                    <include>./bson
+                    <include>../bson
+                    <include>../
      : source-location ../
      : build-dir ./build.dir ;
 

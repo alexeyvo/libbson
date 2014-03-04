@@ -3,9 +3,9 @@ local BOOST_ROOT_PATH = [ os.environ BOOST_ROOT ] ;
 
 project bson_main 
      : requirements <include>./bson
-                    <include>../bson
-                    <include>../yajl
-                    <include>../
+                    <include>../src/bson
+                    <include>../src/yajl
+                    <include>../src
                     <include>$(BOOST_ROOT_PATH)
 
                     <define>bson_shared_EXPORTS
@@ -15,40 +15,40 @@ project bson_main
      : build-dir ./build.dir ;
 
 SOURCES_FILES = 
-	bson/bcon.c
-	bson/bson.c
-	bson/bson-clock.c
-	bson/bson-context.c
-	bson/bson-error.c
-	bson/bson-iter.c
-	bson/bson-json.c
-	bson/bson-keys.c
-	bson/bson-md5.c
-	bson/bson-memory.c
-	bson/bson-oid.c
-	bson/bson-reader.c
-	bson/bson-string.c
-	bson/bson-utf8.c
-	bson/bson-writer.c
-	yajl/yajl_alloc.c
-	yajl/yajl_buf.c
-	yajl/yajl.c
-	yajl/yajl_encode.c
-	yajl/yajl_gen.c
-	yajl/yajl_lex.c
-	yajl/yajl_parser.c
-	yajl/yajl_tree.c
-	yajl/yajl_version.c
+	src/bson/bcon.c
+	src/bson/bson.c
+	src/bson/bson-clock.c
+	src/bson/bson-context.c
+	src/bson/bson-error.c
+	src/bson/bson-iter.c
+	src/bson/bson-json.c
+	src/bson/bson-keys.c
+	src/bson/bson-md5.c
+	src/bson/bson-memory.c
+	src/bson/bson-oid.c
+	src/bson/bson-reader.c
+	src/bson/bson-string.c
+	src/bson/bson-utf8.c
+	src/bson/bson-writer.c
+	src/yajl/yajl_alloc.c
+	src/yajl/yajl_buf.c
+	src/yajl/yajl.c
+	src/yajl/yajl_encode.c
+	src/yajl/yajl_gen.c
+	src/yajl/yajl_lex.c
+	src/yajl/yajl_parser.c
+	src/yajl/yajl_tree.c
+	src/yajl/yajl_version.c
 ;
 
 lib libbson-1.0 : $(SOURCES_FILES) : <toolset>msvc
                                   <cxxflags>/TC
                                   <cxxflags>/RTC1
                                   <linkflags>/DEFAULTLIB:Ws2_32.lib
-                                  <def-file>build/win32/libbson.def ;
+                                  <def-file>build/cmake/libbson.def ;
 
 lib libbson-1.0 : $(SOURCES_FILES) : <toolset>gcc									 
                                   <cxxflags>-std=gnu99  #c99                                  
                                   <target-os>windows:<linkflags>-lws2_32                                  
                                   <linkflags>-lpthread
-                                  <def-file>build/win32/libbson.def ;
+                                  <def-file>build/cmake/libbson.def ;

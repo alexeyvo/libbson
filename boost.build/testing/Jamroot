@@ -5,7 +5,7 @@ use-project /libbson : ../ ;
 
 project bson_main_test 
      : requirements <include>../bson
-                    <include>../../bson
+                    <include>../../src/bson
                     <include>../../yajl
                     <include>../../
                     <include>../../tests

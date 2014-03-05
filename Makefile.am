@@ -2,28 +2,13 @@ EXTRA_DIST =
 CLEANFILES =
 DISTCLEANFILES =
 
-bin_PROGRAMS =
-lib_LTLIBRARIES =
-noinst_PROGRAMS =
-
-libbson_srcdir = $(top_srcdir)
-libbson_builddir = $(top_builddir)
-
-AM_CPPFLAGS = \
-	-DBSON_COMPILATION \
-	-D_BSD_SOURCE \
-	-D_GNUC_SOURCE
-
 include src/Makefile.am
-include src/bson/Makefile.am
-include src/yajl/Makefile.am
-include src/bindings/python/Makefile.am
 include tests/Makefile.am
 include examples/Makefile.am
 include doc/Makefile.am
 
 ACLOCAL_AMFLAGS = -I build/autotools/m4 ${ACLOCAL_FLAGS}
-DISTCHECK_CONFIGURE_FLAGS = --enable-silent-rules
+DISTCHECK_CONFIGURE_FLAGS = --enable-silent-rules --enable-hardening --enable-optimizations
 
 bsondocdir = ${docdir}
 bsondoc_DATA = \

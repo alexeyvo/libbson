@@ -16,7 +16,7 @@
 
 
 #if !defined (BSON_INSIDE) && !defined (BSON_COMPILATION)
-#  error "Only <bson.h> can be included directly."
+# error "Only <bson.h> can be included directly."
 #endif
 
 
@@ -37,6 +37,12 @@
 
 
 #ifdef BSON_OS_WIN32
+# if defined(_WIN32_WINNT) && (_WIN32_WINNT < 0x0600)
+#  undef _WIN32_WINNT
+# endif
+# ifndef _WIN32_WINNT
+#  define _WIN32_WINNT 0x0600
+# endif
 # include <winsock2.h>
 #  ifndef WIN32_LEAN_AND_MEAN
 #   define WIN32_LEAN_AND_MEAN
@@ -74,7 +80,7 @@ BSON_BEGIN_DECLS
 
 
 #ifdef _MSC_VER
-# include "bson-stdint-win32.h"
+# include "bson-stdint-win32.h"# ifndef __cplusplus
   typedef SSIZE_T ssize_t;
 
 # ifndef __cplusplus

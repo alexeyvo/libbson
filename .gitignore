@@ -38,3 +38,5 @@ stamp-h1
 *.swp
 test-libbson
 test.log
+/bin/
+/intermediate/

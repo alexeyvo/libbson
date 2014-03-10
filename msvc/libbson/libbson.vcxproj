@@ -67,24 +67,28 @@
     <IncludePath>..\..\src\bson;.\;..\..\src\;$(IncludePath)</IncludePath>
     <OutDir>..\..\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\..\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_d32_v0-5-1</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>..\..\src\bson;.\;..\..\src\;$(IncludePath)</IncludePath>
     <OutDir>..\..\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\..\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_d64_v0-5-1</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>..\..\src\bson;.\;..\..\src\;$(IncludePath)</IncludePath>
     <OutDir>..\..\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\..\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_r32_v0-5-1</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>..\..\src\bson;.\;..\..\src\;$(IncludePath)</IncludePath>
     <OutDir>..\..\bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>..\..\intermediate\$(Platform)\$(Configuration)\</IntDir>
+    <TargetName>$(ProjectName)_r64_v0-5-1</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

@@ -16,6 +16,12 @@
     <Filter Include="Source Files\yajl">
       <UniqueIdentifier>{34db9f73-52b1-459e-89b6-e3d801b741dd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Config">
+      <UniqueIdentifier>{761bb995-1b00-4ba1-8895-85e4803499ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\yajl">
+      <UniqueIdentifier>{167fc454-7c62-4829-bfcb-b138969b89ea}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\bson\bcon.c">
@@ -90,5 +96,143 @@
     <ClCompile Include="..\..\src\yajl\yajl_version.c">
       <Filter>Source Files\yajl</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="bson-config.h">
+      <Filter>Header Files\Config</Filter>
+    </ClInclude>
+    <ClInclude Include="bson-stdint.h">
+      <Filter>Header Files\Config</Filter>
+    </ClInclude>
+    <ClInclude Include="bson-version.h">
+      <Filter>Header Files\Config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\b64_ntop.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\b64_pton.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bcon.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-atomic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-clock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-compat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-context.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-context-private.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-endian.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-error.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-iter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-json.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-keys.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-macros.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-md5.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-memory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-oid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-private.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-reader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-stdint-win32.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-string.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-thread-private.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-utf8.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\bson\bson-writer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\yajl\yajl_alloc.h">
+      <Filter>Header Files\yajl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\yajl\yajl_buf.h">
+      <Filter>Header Files\yajl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\yajl\yajl_bytestack.h">
+      <Filter>Header Files\yajl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\yajl\yajl_common.h">
+      <Filter>Header Files\yajl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\yajl\yajl_encode.h">
+      <Filter>Header Files\yajl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\yajl\yajl_gen.h">
+      <Filter>Header Files\yajl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\yajl\yajl_lex.h">
+      <Filter>Header Files\yajl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\yajl\yajl_parse.h">
+      <Filter>Header Files\yajl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\yajl\yajl_parser.h">
+      <Filter>Header Files\yajl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\yajl\yajl_tree.h">
+      <Filter>Header Files\yajl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\yajl\yajl_version.h">
+      <Filter>Header Files\yajl</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\bson\bson-config.h.in">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="..\..\src\bson\bson-version.h.in">
+      <Filter>Header Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="version.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

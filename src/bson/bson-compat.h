@@ -25,15 +25,7 @@
 
 
 #include "bson-config.h"
-
-
-#if BSON_OS == 1
-# define BSON_OS_UNIX
-#elif BSON_OS == 2
-# define BSON_OS_WIN32
-#else
-# error "Unknown operating system."
-#endif
+#include "bson-macros.h"
 
 
 #ifdef BSON_OS_WIN32
@@ -80,13 +72,14 @@ BSON_BEGIN_DECLS
 
 
 #ifdef _MSC_VER
-# include "bson-stdint-win32.h"# ifndef __cplusplus
-  typedef SSIZE_T ssize_t;
-
+# include "bson-stdint-win32.h"
 # ifndef __cplusplus
-  typedef SIZE_T size_t;
-#endif
-
+   /* benign redefinition of type */
+#  pragma warning (disable :4142)
+    typedef SSIZE_T ssize_t;
+    typedef SIZE_T size_t;
+#  pragma warning (default :4142)
+# endif
 # define PRIi32 "d"
 # define PRId32 "d"
 # define PRIu32 "u"

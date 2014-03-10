@@ -28,6 +28,13 @@ set (BSON_WITH_OID32_PT 0)
 set (BSON_WITH_OID64_PT 0)
 set (BSON_PTHREAD_ONCE_INIT_NEEDS_BRACES 0)
 
+#librt needed on linux for clock_gettime
+find_library(RT_LIBRARY rt)
+if (RT_LIBRARY)
+   #set required libraries for CHECK_FUNCTION_EXISTS
+   set(CMAKE_REQUIRED_LIBRARIES ${RT_LIBRARY})
+endif()
+
 if (MSVC)
    set (BSON_OS 2)
    set (BSON_HAVE_CLOCK_GETTIME 0)
@@ -109,6 +116,7 @@ set (HEADERS
    ${SOURCE_DIR}/src/bson/bson-error.h
    ${SOURCE_DIR}/src/bson/bson.h
    ${SOURCE_DIR}/src/bson/bson-iter.h
+   ${SOURCE_DIR}/src/bson/bson-json.h
    ${SOURCE_DIR}/src/bson/bson-keys.h
    ${SOURCE_DIR}/src/bson/bson-macros.h
    ${SOURCE_DIR}/src/bson/bson-md5.h
@@ -139,6 +147,11 @@ set_target_properties(bson_static PROPERTIES VERSION ${BSON_VERSION} SOVERSION $
 
 set_target_properties(bson_shared PROPERTIES OUTPUT_NAME "bson-${BSON_API_VERSION}" PREFIX "lib")
 set_target_properties(bson_static PROPERTIES OUTPUT_NAME "bson-static-${BSON_API_VERSION}")
+
+if (RT_LIBRARY)
+    target_link_libraries (bson_shared ${RT_LIBRARY})
+    target_link_libraries (bson_static ${RT_LIBRARY})
+endif()
 
 if (UNIX)
     target_link_libraries (bson_shared ${CMAKE_THREAD_LIBS_INIT})
@@ -184,4 +197,17 @@ install(
 install(
   FILES ${HEADERS}
   DESTINATION "include/libbson-${BSON_API_VERSION}"
+)
+
+set(VERSION "${BSON_VERSION}")
+set(prefix "${CMAKE_INSTALL_PREFIX}")
+set(libdir "\${prefix}/lib")
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbson-1.0.pc.in
+    ${CMAKE_CURRENT_BINARY_DIR}/libbson-1.0.pc
+@ONLY)
+
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/libbson-1.0.pc
+    DESTINATION lib/pkgconfig
 )

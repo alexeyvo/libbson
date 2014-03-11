@@ -229,6 +229,9 @@
     <None Include="..\..\src\bson\bson-version.h.in">
       <Filter>Header Files</Filter>
     </None>
+    <None Include="..\..\build\cmake\libbson.def">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="version.rc">

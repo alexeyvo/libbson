@@ -12,12 +12,15 @@ if [ ! -f README ]; then
     ln -s README.md README
 fi
 
-if [ ! -f COPYING ]; then
-    ln -s LICENSE COPYING
-fi
-
 touch ChangeLog
 touch AUTHORS
+
+if test -z "$(which libtoolize)" && test -z "$(which glibtoolize)"; then
+    echo "Error: libtoolize was not found on your system. Cannot continue."
+    if test "$(uname)" = "Darwin"; then
+        echo "On Darwin, this is named glibtoolize"
+    fi
+fi
 
 if test -z `which autoreconf`; then
     echo "Error: autoreconf not found, please install it."

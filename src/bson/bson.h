@@ -41,6 +41,7 @@
 #include "bson-string.h"
 #include "bson-types.h"
 #include "bson-utf8.h"
+#include "bson-value.h"
 #include "bson-version.h"
 #include "bson-writer.h"
 
@@ -67,6 +68,24 @@ BSON_BEGIN_DECLS
  * Like bson_empty() but treats NULL the same as an empty bson_t document.
  */
 #define bson_empty0(b) (!(b) || bson_empty (b))
+
+
+/**
+ * bson_clear:
+ *
+ * Easily free a bson document and set it to NULL. Use like:
+ *
+ * bson_t *doc = bson_new();
+ * bson_clear (&doc);
+ * assert (doc == NULL);
+ */
+#define bson_clear(bptr) \
+   do { \
+      if (*(bptr)) { \
+         bson_destroy (*(bptr)); \
+         *(bptr) = NULL; \
+      } \
+   } while (0)
 
 
 /**
@@ -139,6 +158,9 @@ BSON_BEGIN_DECLS
 
 #define BSON_APPEND_UNDEFINED(b,key) \
       bson_append_undefined (b, key, (int) strlen (key))
+
+#define BSON_APPEND_VALUE(b,key,val) \
+      bson_append_value (b, key, (int) strlen (key), (val))
 
 
 /**
@@ -396,6 +418,13 @@ bson_validate (const bson_t         *bson,
 char *
 bson_as_json (const bson_t *bson,
               size_t       *length);
+
+
+bool
+bson_append_value (bson_t             *bson,
+                   const char         *key,
+                   int                 key_length,
+                   const bson_value_t *value);
 
 
 /**

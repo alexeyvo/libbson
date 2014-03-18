@@ -26,6 +26,10 @@
 #include "bson-tests.h"
 #include "TestSuite.h"
 
+#ifndef BINARY_DIR
+# define BINARY_DIR "tests/binary"
+#endif
+
 
 static bson_t *
 get_bson (const char *filename)
@@ -36,7 +40,7 @@ get_bson (const char *filename)
    char real_filename[256];
    int fd;
 
-   bson_snprintf(real_filename, sizeof real_filename, "tests/binary/%s", filename);
+   bson_snprintf(real_filename, sizeof real_filename, BINARY_DIR"/%s", filename);
    real_filename[sizeof real_filename - 1] = '\0';
 
    if (-1 == (fd = bson_open(real_filename, O_RDONLY))) {
@@ -1227,6 +1231,21 @@ test_bson_macros (void)
 }
 
 
+static void
+test_bson_clear (void)
+{
+   bson_t *doc = NULL;
+
+   bson_clear (&doc);
+   assert (doc == NULL);
+
+   doc = bson_new ();
+   assert (doc != NULL);
+   bson_clear (&doc);
+   assert (doc == NULL);
+}
+
+
 void
 test_bson_install (TestSuite *suite)
 {
@@ -1276,4 +1295,5 @@ test_bson_install (TestSuite *suite)
    TestSuite_Add (suite, "/bson/concat", test_bson_concat);
    TestSuite_Add (suite, "/bson/reinit", test_bson_reinit);
    TestSuite_Add (suite, "/bson/macros", test_bson_macros);
+   TestSuite_Add (suite, "/bson/clear", test_bson_clear);
 }

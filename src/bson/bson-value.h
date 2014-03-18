@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 MongoDB, Inc.
+ * Copyright 2014 MongoDB, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,30 +15,23 @@
  */
 
 
-#ifndef CBSON_UTIL_H
-#define CBSON_UTIL_H
+#ifndef BSON_VALUE_H
+#define BSON_VALUE_H
 
 
-#include <bson.h>
-
-#ifdef _POSIX_C_SOURCE
-#undef _POSIX_C_SOURCE
-#endif
-#include <Python.h>
+#include "bson-macros.h"
+#include "bson-types.h"
 
 
 BSON_BEGIN_DECLS
 
 
-void          cbson_set_use_fixed_offset (bool   use_fixed_offset);
-PyObject     *cbson_date_time_from_msec  (int64_t  msec_since_epoch);
-int32_t  cbson_date_time_seconds    (PyObject     *date_time);
-bool   cbson_util_init            (PyObject     *module);
-bool   cbson_date_time_check      (PyObject     *object);
-PyObject     *cbson_fixed_offset_utc_ref (void);
+void bson_value_copy    (const bson_value_t *src,
+                         bson_value_t       *dst);
+void bson_value_destroy (bson_value_t       *value);
 
 
 BSON_END_DECLS
 
 
-#endif /* CBSON_UTIL_H */
+#endif /* BSON_VALUE_H */

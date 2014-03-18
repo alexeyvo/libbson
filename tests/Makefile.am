@@ -1,10 +1,5 @@
-noinst_PROGRAMS = test-libbson
+noinst_PROGRAMS += test-libbson
 TEST_PROGS = test-libbson
-
-
-if OS_LINUX
-TEST_PROGS += $(top_srcdir)/tests/abicheck.sh
-endif
 
 
 test_libbson_SOURCES = \
@@ -22,6 +17,7 @@ test_libbson_SOURCES = \
 	tests/test-reader.c \
 	tests/test-string.c \
 	tests/test-utf8.c \
+	tests/test-value.c \
 	tests/test-writer.c \
 	tests/test-bcon-basic.c \
 	tests/test-bcon-extract.c
@@ -30,7 +26,8 @@ test_libbson_CPPFLAGS = \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/bson \
 	-I$(top_builddir)/src/bson \
-	-DBSON_COMPILATION
+	-DBSON_COMPILATION \
+	-DBINARY_DIR="\"$(top_srcdir)/tests/binary\""
 
 test_libbson_LDADD = libbson-1.0.la
 
@@ -40,6 +37,9 @@ PYTEST_DEPS = cbson.la
 endif
 
 
+check: test
+
+
 test: $(TEST_PROGS) $(PYTEST_DEPS)
 	@ for TEST_PROG in $(TEST_PROGS) ; do \
 		$(LIBTOOL) --mode=execute $$VALGRIND ./$$TEST_PROG -F test.log; \
@@ -47,10 +47,19 @@ test: $(TEST_PROGS) $(PYTEST_DEPS)
 if ENABLE_PYTHON
 	@ LD_LIBRARY_PATH=.libs DYLD_LIBRARY_PATH=.libs PYTHONPATH=.libs ./tests/test_cbson.py
 endif
+if OS_LINUX
+	@ $(srcdir)/tests/abicheck.sh "$(srcdir)/src/libbson.symbols"
+endif
+
+
+DISTCLEANFILES += test.log
 
 
 EXTRA_DIST += \
+	tests/abicheck.sh \
 	tests/bson-tests.h \
+	tests/binary/binary_deprecated.bson \
+	tests/binary/codewscope.bson \
 	tests/binary/dollarquery.bson \
 	tests/binary/dotkey.bson \
 	tests/binary/dotquery.bson \

@@ -42,3 +42,7 @@ test.log
 xcuserdata
 /bin/
 /intermediate/
+/bson_static.dir/
+/Debug/
+/Testing/
+/x64/

@@ -10,42 +10,12 @@ AC_CHECK_FUNC(snprintf, [AC_SUBST(BSON_HAVE_SNPRINTF, 1)])
 AC_SUBST(BSON_HAVE_CLOCK_GETTIME, 0)
 AC_SEARCH_LIBS([clock_gettime], [rt], [AC_SUBST(BSON_HAVE_CLOCK_GETTIME, 1)])
 
-if test "$os_solaris" = "yes"; then
-    pthread_flag="-pthreads"
-else
-    pthread_flag="-pthread"
-fi
 
-# Check if we need to use a mutex due to no atomics support.
-AC_SUBST(BSON_WITH_OID32_PT, 0)
-AC_SUBST(BSON_WITH_OID64_PT, 0)
-AX_PTHREAD([
-   if test "$os_win32" != "yes"; then
-        PTHREAD_LIB="-lpthread"
-        AC_TRY_LINK([#include <stdint.h>],
-           [uint32_t seq = __sync_fetch_and_add_4(&seq, 1);],
-           ,
-           AC_SUBST(BSON_WITH_OID32_PT, 1)
-           PTHREAD_CFLAGS="$pthread_flag"
-           PTHREAD_LDFLAGS="$pthread_flag"
-        )
-        AC_TRY_LINK([#include <stdint.h>],
-           [uint64_t seq = __sync_fetch_and_add_8(&seq, 1);],
-           ,
-           AC_SUBST(BSON_WITH_OID64_PT, 1)
-           PTHREAD_CFLAGS="$pthread_flag"
-           PTHREAD_LDFLAGS="$pthread_flag"
-        )
-        CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-        LDFLAGS="$LDFLAGS $PTHREAD_LDFLAGS"
-        AC_SUBST(PTHREAD_LIB)
-        enable_pthreads=yes
-     else
-        enable_pthreads=no
-     fi
-],[
-        enable_pthreads=no
-])
+# Check for pthreads. We might need to make this better to handle mingw,
+# but I actually think it is okay to just check for it even though we will
+# use win32 primatives.
+AX_PTHREAD([],
+           [AC_MSG_ERROR([libbson requires pthreads on non-Windows platforms.])])
 
 
 # The following is borrowed from the guile configure script.

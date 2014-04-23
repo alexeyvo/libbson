@@ -11,9 +11,9 @@ set (SOURCE_DIR "${PROJECT_SOURCE_DIR}/")
 
 set (BSON_MAJOR_VERSION 0)
 set (BSON_MINOR_VERSION 6)
-set (BSON_MICRO_VERSION 5)
+set (BSON_MICRO_VERSION 9)
 set (BSON_API_VERSION 1.0)
-set (BSON_VERSION 0.6.5)
+set (BSON_VERSION 0.6.9)
 
 set (CPACK_RESOURCE_FILE_LICENSE "${SOURCE_DIR}/COPYING")
 set (CPACK_PACKAGE_VERSION_MAJOR ${BSON_MAJOR_VERSION})
@@ -24,8 +24,6 @@ include (CPack)
 TEST_BIG_ENDIAN(BSON_BIG_ENDIAN)
 
 # These need proper checks like automake.
-set (BSON_WITH_OID32_PT 0)
-set (BSON_WITH_OID64_PT 0)
 set (BSON_PTHREAD_ONCE_INIT_NEEDS_BRACES 0)
 
 #librt needed on linux for clock_gettime
@@ -50,6 +48,8 @@ else ()
    CHECK_FUNCTION_EXISTS(snprintf BSON_HAVE_SNPRINTF)
    CHECK_INCLUDE_FILE(stdbool.h BSON_HAVE_STDBOOL_H)
 endif ()
+
+set (BSON_HAVE_ATOMIC_64_ADD_AND_FETCH 1)
 
 if (BSON_BIG_ENDIAN)
    set (BSON_BYTE_ORDER 4321)
@@ -79,6 +79,7 @@ include_directories("${SOURCE_DIR}/src")
 set (SOURCES
    ${SOURCE_DIR}/src/bson/bcon.c
    ${SOURCE_DIR}/src/bson/bson.c
+   ${SOURCE_DIR}/src/bson/bson-atomic.c
    ${SOURCE_DIR}/src/bson/bson-clock.c
    ${SOURCE_DIR}/src/bson/bson-context.c
    ${SOURCE_DIR}/src/bson/bson-error.c
@@ -91,6 +92,7 @@ set (SOURCES
    ${SOURCE_DIR}/src/bson/bson-reader.c
    ${SOURCE_DIR}/src/bson/bson-string.c
    ${SOURCE_DIR}/src/bson/bson-utf8.c
+   ${SOURCE_DIR}/src/bson/bson-value.c
    ${SOURCE_DIR}/src/bson/bson-writer.c
    ${SOURCE_DIR}/src/yajl/yajl_alloc.c
    ${SOURCE_DIR}/src/yajl/yajl_buf.c
@@ -127,6 +129,7 @@ set (HEADERS
    ${SOURCE_DIR}/src/bson/bson-string.h
    ${SOURCE_DIR}/src/bson/bson-types.h
    ${SOURCE_DIR}/src/bson/bson-utf8.h
+   ${SOURCE_DIR}/src/bson/bson-value.h
    ${SOURCE_DIR}/src/bson/bson-writer.h
 )
 
@@ -178,6 +181,7 @@ add_executable(test-libbson
    ${SOURCE_DIR}/tests/test-reader.c
    ${SOURCE_DIR}/tests/test-string.c
    ${SOURCE_DIR}/tests/test-utf8.c
+   ${SOURCE_DIR}/tests/test-value.c
    ${SOURCE_DIR}/tests/test-writer.c
    ${SOURCE_DIR}/tests/test-bcon-basic.c
    ${SOURCE_DIR}/tests/test-bcon-extract.c

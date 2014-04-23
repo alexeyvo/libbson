@@ -76,6 +76,8 @@ MAN3 = \
 	doc/bson_malloc0.3 \
 	doc/bson_malloc.3 \
 	doc/bson_new.3 \
+	doc/bson_new_from_buffer.3 \
+	doc/bson_new_from_data.3 \
 	doc/bson_oid_compare.3 \
 	doc/bson_oid_copy.3 \
 	doc/bson_oid_equal.3 \
@@ -90,6 +92,7 @@ MAN3 = \
 	doc/bson_reader_set_read_func.3 \
 	doc/bson_reader_tell.3 \
 	doc/bson_realloc.3 \
+	doc/bson_realloc_ctx.3 \
 	doc/bson_reinit.3 \
 	doc/bson_sized_new.3 \
 	doc/bson_strdup.3 \

@@ -99,6 +99,9 @@ BSON_BEGIN_DECLS
 #define BSON_APPEND_ARRAY(b,key,val) \
       bson_append_array (b, key, (int)strlen (key), val)
 
+#define BSON_APPEND_ARRAY_BEGIN(b,key,child) \
+      bson_append_array_begin (b, key, (int)strlen (key), child)
+
 #define BSON_APPEND_BINARY(b,key,subtype,val,len) \
       bson_append_binary (b, key, (int) strlen (key), subtype, val, len)
 
@@ -110,6 +113,12 @@ BSON_BEGIN_DECLS
 
 #define BSON_APPEND_CODE_WITH_SCOPE(b,key,val,scope) \
       bson_append_code_with_scope (b, key, (int) strlen (key), val, scope)
+
+#define BSON_APPEND_DBPOINTER(b,key,coll,oid) \
+      bson_append_dbpointer (b, key, (int) strlen (key), coll, oid)
+
+#define BSON_APPEND_DOCUMENT_BEGIN(b,key,child) \
+      bson_append_document_begin (b, key, (int)strlen (key), child)
 
 #define BSON_APPEND_DOUBLE(b,key,val) \
       bson_append_double (b, key, (int) strlen (key), val)
@@ -255,6 +264,26 @@ bson_new_from_data (const uint8_t *data,
 
 
 /**
+ * bson_new_from_buffer:
+ * @buf: A pointer to a buffer containing a serialized bson document.  Or null
+ * @buf_len: The length of the buffer in bytes.
+ * @realloc_fun: a realloc like function
+ * @realloc_fun_ctx: a context for the realloc function
+ *
+ * Creates a new bson_t structure using the data provided. @buf should contain
+ * a bson document, or null pointer should be passed for new allocations.
+ *
+ * Returns: A newly allocate bson_t that should be freed with bson_destroy().
+ *          The underlying buffer will be used and not be freed in destroy.
+ */
+bson_t *
+bson_new_from_buffer (uint8_t           **buf,
+                      size_t             *buf_len,
+                      bson_realloc_func   realloc_func,
+                      void               *realloc_func_ctx);
+
+
+/**
  * bson_sized_new:
  * @size: A size_t containing the number of bytes to allocate.
  *
@@ -317,6 +346,31 @@ bson_copy_to_excluding (const bson_t *src,
  */
 void
 bson_destroy (bson_t *bson);
+
+
+/**
+ * bson_destroy_with_steal:
+ * @bson: A #bson_t.
+ * @steal: If ownership of the data buffer should be transfered to caller.
+ * @length: (out): location for the length of the buffer.
+ *
+ * Destroys @bson similar to calling bson_destroy() except that the underlying
+ * buffer will be returned and ownership transfered to the caller if @steal
+ * is non-zero.
+ *
+ * If length is non-NULL, the length of @bson will be stored in @length.
+ *
+ * It is a programming error to call this function with any bson that has
+ * been initialized static, or is being used to create a subdocument with
+ * functions such as bson_append_document_begin() or bson_append_array_begin().
+ *
+ * Returns: a buffer owned by the caller if @steal is true. Otherwise NULL.
+ *    If there was an error, NULL is returned.
+ */
+uint8_t *
+bson_destroy_with_steal (bson_t   *bson,
+                         bool      steal,
+                         uint32_t *length);
 
 
 /**

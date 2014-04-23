@@ -67,12 +67,14 @@
 #    define MIN(a, b) ( (std::min)(a, b) )
 #  elif defined(_MSC_VER)
 #    define MIN(a, b) ((a) < (b) ? (a) : (b))
-#  else
+#  elif defined(__GNUC__)
 #    define MIN(a, b) ({     \
                           __typeof__ (a)_a = (a); \
                           __typeof__ (b)_b = (b); \
                           _a < _b ? _a : _b;   \
                        })
+#  else
+#    define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #  endif
 #endif
 
@@ -82,12 +84,14 @@
 #    define MAX(a, b) ( (std::max)(a, b) )
 #  elif defined(_MSC_VER)
 #    define MAX(a, b) ((a) > (b) ? (a) : (b))
-#  else
+#  elif defined(__GNUC__)
 #    define MAX(a, b) ({     \
                           __typeof__ (a)_a = (a); \
                           __typeof__ (b)_b = (b); \
                           _a > _b ? _a : _b;   \
                        })
+#  else
+#    define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #  endif
 #endif
 
@@ -99,6 +103,9 @@
 
 #if defined(_MSC_VER)
 #  define BSON_ALIGNED_BEGIN(_N) __declspec (align (_N))
+#  define BSON_ALIGNED_END(_N)
+#elif defined(__SUNPRO_C)
+#  define BSON_ALIGNED_BEGIN(_N)
 #  define BSON_ALIGNED_END(_N)
 #else
 #  define BSON_ALIGNED_BEGIN(_N)
@@ -217,5 +224,20 @@
 #define BSON_ENSURE_ARRAY_PARAM_SIZE(_n) static (_n)
 #define BSON_TYPEOF typeof
 #endif
+
+
+#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
+# define BSON_GNUC_DEPRECATED __attribute__((__deprecated__))
+#else
+# define BSON_GNUC_DEPRECATED
+#endif
+
+
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5)
+# define BSON_GNUC_DEPRECATED_FOR(f) __attribute__((deprecated("Use " #f " instead")))
+#else
+# define BSON_GNUC_DEPRECATED_FOR(f) BSON_GNUC_DEPRECATED
+#endif
+
 
 #endif /* BSON_MACROS_H */

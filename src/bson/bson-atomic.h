@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 MongoDB, Inc.
+ * Copyright 2013-2014 MongoDB, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #define BSON_ATOMIC_H
 
 
+#include "bson-config.h"
 #include "bson-compat.h"
 #include "bson-macros.h"
 
@@ -26,14 +27,51 @@
 BSON_BEGIN_DECLS
 
 
+#if defined(__sun) && defined(__SVR4)
+# include <atomic.h>
+# define bson_atomic_int_add(p,v)   atomic_add_32_nv((volatile uint32_t *)p, (v))
+# define bson_atomic_int64_add(p,v) atomic_add_64_nv((volatile uint64_t *)p, (v))
+#elif defined(_WIN32)
+# define bson_atomic_int_add(p, v)   (InterlockedAdd((volatile LONG *)(p), (LONG)(v)))
+# define bson_atomic_int64_add(p, v) (InterlockedAdd64((volatile LONGLONG *)(p), (LONGLONG)(v)))
+#elif defined(__GNUC__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 1)))
+# define bson_atomic_int_add(p,v)   __sync_add_and_fetch((p),(v))
+# if defined(BSON_HAVE_ATOMIC_64_ADD_AND_FETCH)
+#  define bson_atomic_int64_add(p,v) __sync_add_and_fetch((volatile int64_t*)(p),(int64_t)(v))
+# else
+#  define __BSON_NEED_ATOMIC_64 1
+# endif
+#else
+# warning "Unsupported Compiler/OS combination, please add support for atomics in bson-atomic.h. Using Mutex to emulate atomics."
+# define __BSON_NEED_ATOMIC_32 1
+# define __BSON_NEED_ATOMIC_64 1
+#endif
+
+
+#ifdef __BSON_NEED_ATOMIC_32
+  int32_t bson_atomic_int_add   (volatile int32_t *p, int32_t n);
+#endif
+#ifdef __BSON_NEED_ATOMIC_64
+  int64_t bson_atomic_int64_add (volatile int64_t *p, int64_t n);
+#endif
+
+
 #if defined(__GNUC__)
-# define bson_atomic_int_add(p, v)   (__sync_add_and_fetch(p, v))
-# define bson_atomic_int64_add(p, v) (__sync_add_and_fetch_8(p, v))
-# define bson_memory_barrier         __sync_synchronize
-#elif defined(_MSC_VER) || defined(_WIN32)
-# define bson_atomic_int_add(p, v)   (InterlockedExchangeAdd((long int *)(p), v))
-# define bson_atomic_int64_add(p, v) (InterlockedExchangeAdd64(p, v))
-# define bson_memory_barrier         MemoryBarrier
+# if __GNUC__ >= 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)
+#  define bson_memory_barrier() __sync_synchronize()
+# else
+#  warning "GCC Pre-4.1 discovered, using inline assembly for memory barrier."
+#  define bson_memory_barrier() __asm__ volatile ("":::"memory")
+# endif
+#elif defined(__SUNPRO_C)
+# include <mbarrier.h>
+# define bson_memory_barrier() __machine_rw_barrier()
+#elif defined(_WIN32)
+# define bson_memory_barrier() MemoryBarrier()
+#else
+# define __BSON_NEED_BARRIER 1
+# warning "Unknown compiler, using lock for compiler barrier."
+void bson_memory_barrier (void);
 #endif
 
 

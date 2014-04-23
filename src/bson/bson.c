@@ -114,7 +114,8 @@ _bson_impl_inline_grow (bson_impl_inline_t *impl, /* IN */
       alloc->offset = 0;
       alloc->alloc = data;
       alloc->alloclen = req;
-      alloc->realloc = bson_realloc;
+      alloc->realloc = bson_realloc_ctx;
+      alloc->realloc_func_ctx = NULL;
 
       return true;
    }
@@ -161,7 +162,7 @@ _bson_impl_alloc_grow (bson_impl_alloc_t *impl, /* IN */
    req = bson_next_power_of_two (req);
 
    if ((int32_t)req <= INT32_MAX && impl->realloc) {
-      *impl->buf = impl->realloc (*impl->buf, req);
+      *impl->buf = impl->realloc (*impl->buf, req, impl->realloc_func_ctx);
       *impl->buflen = req;
       return true;
    }
@@ -491,6 +492,7 @@ _bson_append_bson_begin (bson_t      *bson,        /* IN */
    achild->alloc = NULL;
    achild->alloclen = 0;
    achild->realloc = aparent->realloc;
+   achild->realloc_func_ctx = aparent->realloc_func_ctx;
 
    return true;
 }
@@ -1579,6 +1581,7 @@ bson_append_date_time (bson_t      *bson,
                        int64_t value)
 {
    static const uint8_t type = BSON_TYPE_DATE_TIME;
+   uint64_t value_le;
 
    bson_return_val_if_fail (bson, false);
    bson_return_val_if_fail (key, false);
@@ -1588,12 +1591,14 @@ bson_append_date_time (bson_t      *bson,
       key_length =(int)strlen (key);
    }
 
+   value_le = BSON_UINT64_TO_LE (value);
+
    return _bson_append (bson, 4,
                         (1 + key_length + 1 + 8),
                         1, &type,
                         key_length, key,
                         1, &gZero,
-                        8, &value);
+                        8, &value_le);
 }
 
 
@@ -1609,8 +1614,8 @@ bson_append_timeval (bson_t         *bson,
    bson_return_val_if_fail (key, false);
    bson_return_val_if_fail (value, false);
 
-   unix_msec = BSON_UINT64_TO_LE ((((uint64_t)value->tv_sec) * 1000UL) +
-                                  (value->tv_usec / 1000UL));
+   unix_msec = (((uint64_t)value->tv_sec) * 1000UL) +
+                                  (value->tv_usec / 1000UL);
    return bson_append_date_time (bson, key, key_length, unix_msec);
 }
 
@@ -1824,6 +1829,7 @@ bson_init_static (bson_t             *bson,
    impl->alloc = (uint8_t *)data;
    impl->alloclen = length;
    impl->realloc = NULL;
+   impl->realloc_func_ctx = NULL;
 
    return true;
 }
@@ -1881,7 +1887,8 @@ bson_sized_new (size_t size)
       impl_a->alloc[2] = 0;
       impl_a->alloc[3] = 0;
       impl_a->alloc[4] = 0;
-      impl_a->realloc = bson_realloc;
+      impl_a->realloc = bson_realloc_ctx;
+      impl_a->realloc_func_ctx = NULL;
    }
 
    return b;
@@ -1914,6 +1921,60 @@ bson_new_from_data (const uint8_t *data,
    bson = bson_sized_new (length);
    memcpy (_bson_data (bson), data, length);
    bson->len = length;
+
+   return bson;
+}
+
+
+bson_t *
+bson_new_from_buffer (uint8_t           **buf,
+                      size_t             *buf_len,
+                      bson_realloc_func   realloc_func,
+                      void               *realloc_func_ctx)
+{
+   bson_impl_alloc_t *impl;
+   uint32_t len_le;
+   uint32_t length;
+   bson_t *bson;
+
+   bson_return_val_if_fail (buf, NULL);
+   bson_return_val_if_fail (buf_len, NULL);
+
+   if (!realloc_func) {
+      realloc_func = bson_realloc_ctx;
+   }
+
+   bson = bson_malloc0 (sizeof *bson);
+   impl = (bson_impl_alloc_t *)bson;
+
+   if (!*buf) {
+      length = 5;
+      len_le = BSON_UINT32_TO_LE (length);
+      *buf_len = 5;
+      *buf = realloc_func (*buf, *buf_len, realloc_func_ctx);
+      memcpy (*buf, &len_le, 4);
+      (*buf) [4] = '\0';
+   } else {
+      if ((*buf_len < 5) || (*buf_len > INT_MAX)) {
+         bson_free (bson);
+         return NULL;
+      }
+
+      memcpy (&len_le, *buf, 4);
+      length = BSON_UINT32_FROM_LE(len_le);
+   }
+
+   if ((*buf)[length - 1]) {
+      bson_free (bson);
+      return NULL;
+   }
+
+   impl->flags = BSON_FLAG_NO_FREE;
+   impl->len = length;
+   impl->buf = buf;
+   impl->buflen = buf_len;
+   impl->realloc = realloc_func;
+   impl->realloc_func_ctx = realloc_func_ctx;
 
    return bson;
 }
@@ -1961,7 +2022,8 @@ bson_copy_to (const bson_t *src,
    adst->offset = 0;
    adst->alloc = bson_malloc (len);
    adst->alloclen = len;
-   adst->realloc = bson_realloc;
+   adst->realloc = bson_realloc_ctx;
+   adst->realloc_func_ctx = NULL;
    memcpy (adst->alloc, data, src->len);
 }
 
@@ -2048,6 +2110,48 @@ bson_destroy (bson_t *bson)
    if (!(bson->flags & BSON_FLAG_STATIC)) {
       bson_free (bson);
    }
+}
+
+
+uint8_t *
+bson_destroy_with_steal (bson_t   *bson,
+                         bool      steal,
+                         uint32_t *length)
+{
+   uint8_t *ret = NULL;
+
+   bson_return_val_if_fail (bson, NULL);
+
+   if (length) {
+      *length = bson->len;
+   }
+
+   if (!steal) {
+      bson_destroy (bson);
+      return NULL;
+   }
+
+   if ((bson->flags & (BSON_FLAG_CHILD |
+                       BSON_FLAG_IN_CHILD |
+                       BSON_FLAG_RDONLY))) {
+      /* Do nothing */
+   } else if ((bson->flags & BSON_FLAG_INLINE)) {
+      bson_impl_inline_t *inl;
+
+      inl = (bson_impl_inline_t *)bson;
+      ret = bson_malloc (bson->len);
+      memcpy (ret, inl->data, bson->len);
+   } else {
+      bson_impl_alloc_t *alloc;
+
+      alloc = (bson_impl_alloc_t *)bson;
+      ret = *alloc->buf;
+      *alloc->buf = NULL;
+   }
+
+   bson_destroy (bson);
+
+   return ret;
 }
 
 

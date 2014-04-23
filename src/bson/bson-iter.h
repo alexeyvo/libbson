@@ -93,6 +93,9 @@ BSON_BEGIN_DECLS
 #define BSON_ITER_HOLDS_MINKEY(iter) \
    (bson_iter_type ((iter)) == BSON_TYPE_MINKEY)
 
+#define BSON_ITER_IS_KEY(iter, key) \
+   (0 == strcmp ((key), bson_iter_key ((iter))))
+
 
 const bson_value_t *
 bson_iter_value (bson_iter_t *iter);
@@ -387,7 +390,7 @@ bson_iter_timeval_unsafe (const bson_iter_t *iter,
 #ifdef BSON_OS_WIN32
    tv->tv_sec = (long)bson_iter_int64_unsafe (iter);
 #else
-   tv->tv_sec = bson_iter_int64_unsafe (iter);
+   tv->tv_sec = (suseconds_t)bson_iter_int64_unsafe (iter);
 #endif
    tv->tv_usec = 0;
 }

@@ -122,17 +122,60 @@ void *
 bson_realloc (void   *mem,        /* IN */
               size_t  num_bytes)  /* IN */
 {
+   /*
+    * Not all platforms are guaranteed to free() the memory if a call to
+    * realloc() with a size of zero occurs. Windows, Linux, and FreeBSD do,
+    * however, OS X does not.
+    */
+   if (BSON_UNLIKELY (num_bytes == 0)) {
+      bson_free (mem);
+      return NULL;
+   }
+
+#ifdef __APPLE__
+   mem = reallocf (mem, num_bytes);
+#else
    mem = realloc (mem, num_bytes);
+#endif
 
    if (BSON_UNLIKELY (!mem)) {
-      if (!num_bytes) {
-         return mem;
-      }
-
       abort ();
    }
 
    return mem;
+}
+
+
+/*
+ *--------------------------------------------------------------------------
+ *
+ * bson_realloc_ctx --
+ *
+ *       This wraps bson_realloc and provides a compatible api for similar
+ *       functions with a context
+ *
+ * Parameters:
+ *       @mem: The memory to realloc, or NULL.
+ *       @num_bytes: The size of the new allocation or 0 to free.
+ *       @ctx: Ignored
+ *
+ * Returns:
+ *       The new allocation if successful; otherwise abort() is called and
+ *       this function never returns.
+ *
+ * Side effects:
+ *       None.
+ *
+ *--------------------------------------------------------------------------
+ */
+
+
+void *
+bson_realloc_ctx (void   *mem,        /* IN */
+                  size_t  num_bytes,  /* IN */
+                  void   *ctx)        /* IN */
+{
+   return bson_realloc(mem, num_bytes);
 }
 
 

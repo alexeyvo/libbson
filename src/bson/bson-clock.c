@@ -32,6 +32,7 @@
 # include <sys/time.h>
 #endif
 
+#include "bson-clock.h"
 
 
 /*
@@ -52,7 +53,11 @@
 
 int
 bson_gettimeofday (struct timeval  *tv, /* OUT */
+#if defined(__SUNPRO_C)
+                   void            *tz) /* OUT */
+#else
                    struct timezone *tz) /* OUT */
+#endif
 {
 #if defined(_WIN32)
 # if defined(_MSC_VER)

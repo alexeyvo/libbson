@@ -252,7 +252,7 @@ static void
 _bson_context_get_oid_seq32_threadsafe (bson_context_t *context, /* IN */
                                         bson_oid_t     *oid)     /* OUT */
 {
-   uint32_t seq = bson_atomic_int_add (&context->seq32, 1);
+   int32_t seq = bson_atomic_int_add (&context->seq32, 1);
 
    seq = BSON_UINT32_TO_BE (seq);
    memcpy (&oid->bytes[9], ((uint8_t *)&seq) + 1, 3);
@@ -309,14 +309,7 @@ static void
 _bson_context_get_oid_seq64_threadsafe (bson_context_t *context, /* IN */
                                         bson_oid_t     *oid)     /* OUT */
 {
-#if defined WITH_OID64_PT
-   uint64_t seq;
-   bson_mutex_lock (&context->_m64);
-   seq = context->seq64++;
-   bson_mutex_unlock (&context->_m64);
-#else
-   uint64_t seq = bson_atomic_int64_add (&context->seq64, 1);
-#endif
+   int64_t seq = bson_atomic_int64_add (&context->seq64, 1);
 
    seq = BSON_UINT64_TO_BE (seq);
    memcpy (&oid->bytes[4], &seq, 8);
@@ -393,8 +386,8 @@ bson_context_new (bson_context_flags_t flags) /* IN */
     * and pid xored together. I welcome better solutions if at all necessary.
     */
    bson_gettimeofday (&tv, NULL);
-   seed[0] = tv.tv_sec;
-   seed[1] = tv.tv_usec;
+   seed[0] = (unsigned int)tv.tv_sec;
+   seed[1] = (unsigned int)tv.tv_usec;
    seed[2] = _bson_getpid ();
    real_seed = seed[0] ^ seed[1] ^ seed[2];
 

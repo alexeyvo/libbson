@@ -120,7 +120,7 @@ typedef struct _bson_context_t bson_context_t;
  * This structure is meant to fit in two sequential 64-byte cachelines.
  */
 BSON_ALIGNED_BEGIN (128)
-typedef struct
+typedef struct _bson_t
 {
    uint32_t flags;        /* Internal flags for the bson_t. */
    uint32_t len;          /* Length of BSON data. */
@@ -247,9 +247,11 @@ typedef enum
  *--------------------------------------------------------------------------
  */
 
+BSON_ALIGNED_BEGIN (8)
 typedef struct _bson_value_t
 {
    bson_type_t           value_type;
+   int32_t               padding;
    union {
       bson_oid_t         v_oid;
       int64_t            v_int64;
@@ -263,16 +265,16 @@ typedef struct _bson_value_t
          uint32_t        increment;
       } v_timestamp;
       struct {
-         uint32_t        len;
          char           *str;
+         uint32_t        len;
       } v_utf8;
       struct {
-         uint32_t        data_len;
          uint8_t        *data;
+         uint32_t        data_len;
       } v_doc;
       struct {
-         uint32_t        data_len;
          uint8_t        *data;
+         uint32_t        data_len;
          bson_subtype_t  subtype;
       } v_binary;
       struct {
@@ -285,21 +287,22 @@ typedef struct _bson_value_t
          bson_oid_t      oid;
       } v_dbpointer;
       struct {
-         uint32_t        code_len;
          char           *code;
+         uint32_t        code_len;
       } v_code;
       struct {
-         uint32_t        code_len;
          char           *code;
-         uint32_t        scope_len;
          uint8_t        *scope_data;
+         uint32_t        code_len;
+         uint32_t        scope_len;
       } v_codewscope;
       struct {
-         uint32_t        len;
          char           *symbol;
+         uint32_t        len;
       } v_symbol;
    } value;
-} bson_value_t;
+} bson_value_t
+BSON_ALIGNED_END (8);
 
 
 /**
@@ -340,13 +343,12 @@ BSON_ALIGNED_END (128);
  * memory allocations under certain circumstances such as reading from an
  * incoming mongo packet.
  */
-BSON_ALIGNED_BEGIN (128)
+
 typedef struct
 {
    uint32_t type;
    /*< private >*/
-} bson_reader_t
-BSON_ALIGNED_END (128);
+} bson_reader_t;
 
 
 /**
@@ -364,114 +366,118 @@ BSON_ALIGNED_END (128);
  * You may pre-maturely stop the visitation of fields by returning true in your
  * visitor. Returning false will continue visitation to further fields.
  */
+BSON_ALIGNED_BEGIN (8)
 typedef struct
 {
-   bool (*visit_before)(const bson_iter_t *iter,
-                               const char        *key,
-                               void              *data);
-   bool (*visit_after)(const bson_iter_t *iter,
-                              const char        *key,
-                              void              *data);
-   void (*visit_corrupt)(const bson_iter_t *iter,
-                         void              *data);
-   bool (*visit_double)(const bson_iter_t *iter,
-                               const char        *key,
-                               double             v_double,
-                               void              *data);
-   bool (*visit_utf8)(const bson_iter_t *iter,
+   bool (*visit_before)     (const bson_iter_t *iter,
+                             const char        *key,
+                             void              *data);
+   bool (*visit_after)      (const bson_iter_t *iter,
+                             const char        *key,
+                             void              *data);
+   void (*visit_corrupt)    (const bson_iter_t *iter,
+                             void              *data);
+   bool (*visit_double)     (const bson_iter_t *iter,
+                             const char        *key,
+                             double             v_double,
+                             void              *data);
+   bool (*visit_utf8)       (const bson_iter_t *iter,
                              const char        *key,
                              size_t             v_utf8_len,
                              const char        *v_utf8,
                              void              *data);
-   bool (*visit_document)(const bson_iter_t *iter,
-                                 const char        *key,
-                                 const bson_t      *v_document,
-                                 void              *data);
-   bool (*visit_array)(const bson_iter_t *iter,
-                              const char        *key,
-                              const bson_t      *v_array,
-                              void              *data);
-   bool (*visit_binary)(const bson_iter_t  *iter,
-                               const char         *key,
-                               bson_subtype_t      v_subtype,
-                               size_t              v_binary_len,
-                               const uint8_t *v_binary,
-                               void               *data);
-   bool (*visit_undefined)(const bson_iter_t *iter,
-                                  const char        *key,
-                                  void              *data);
-   bool (*visit_oid)(const bson_iter_t *iter,
-                            const char        *key,
-                            const bson_oid_t  *v_oid,
-                            void              *data);
-   bool (*visit_bool)(const bson_iter_t *iter,
+   bool (*visit_document)   (const bson_iter_t *iter,
                              const char        *key,
-                             bool        v_bool,
+                             const bson_t      *v_document,
                              void              *data);
-   bool (*visit_date_time)(const bson_iter_t *iter,
-                                  const char        *key,
-                                  int64_t       msec_since_epoch,
-                                  void              *data);
-   bool (*visit_null)(const bson_iter_t *iter,
+   bool (*visit_array)      (const bson_iter_t *iter,
+                             const char        *key,
+                             const bson_t      *v_array,
+                             void              *data);
+   bool (*visit_binary)     (const bson_iter_t *iter,
+                             const char        *key,
+                             bson_subtype_t     v_subtype,
+                             size_t             v_binary_len,
+                             const uint8_t     *v_binary,
+                             void              *data);
+   bool (*visit_undefined)  (const bson_iter_t *iter,
                              const char        *key,
                              void              *data);
-   bool (*visit_regex)(const bson_iter_t *iter,
-                              const char        *key,
-                              const char        *v_regex,
-                              const char        *v_options,
-                              void              *data);
-   bool (*visit_dbpointer)(const bson_iter_t *iter,
-                                  const char        *key,
-                                  size_t             v_collection_len,
-                                  const char        *v_collection,
-                                  const bson_oid_t  *v_oid,
-                                  void              *data);
-   bool (*visit_code)(const bson_iter_t *iter,
+   bool (*visit_oid)        (const bson_iter_t *iter,
+                             const char        *key,
+                             const bson_oid_t  *v_oid,
+                             void              *data);
+   bool (*visit_bool)       (const bson_iter_t *iter,
+                             const char        *key,
+                             bool               v_bool,
+                             void              *data);
+   bool (*visit_date_time)  (const bson_iter_t *iter,
+                             const char        *key,
+                             int64_t            msec_since_epoch,
+                             void              *data);
+   bool (*visit_null)       (const bson_iter_t *iter,
+                             const char        *key,
+                             void              *data);
+   bool (*visit_regex)      (const bson_iter_t *iter,
+                             const char        *key,
+                             const char        *v_regex,
+                             const char        *v_options,
+                             void              *data);
+   bool (*visit_dbpointer)  (const bson_iter_t *iter,
+                             const char        *key,
+                             size_t             v_collection_len,
+                             const char        *v_collection,
+                             const bson_oid_t  *v_oid,
+                             void              *data);
+   bool (*visit_code)       (const bson_iter_t *iter,
                              const char        *key,
                              size_t             v_code_len,
                              const char        *v_code,
                              void              *data);
-   bool (*visit_symbol)(const bson_iter_t *iter,
-                               const char        *key,
-                               size_t             v_symbol_len,
-                               const char        *v_symbol,
-                               void              *data);
-   bool (*visit_codewscope)(const bson_iter_t *iter,
-                                   const char        *key,
-                                   size_t             v_code_len,
-                                   const char        *v_code,
-                                   const bson_t      *v_scope,
-                                   void              *data);
-   bool (*visit_int32)(const bson_iter_t *iter,
-                              const char        *key,
-                              int32_t       v_int32,
-                              void              *data);
-   bool (*visit_timestamp)(const bson_iter_t *iter,
-                                  const char        *key,
-                                  uint32_t      v_timestamp,
-                                  uint32_t      v_increment,
-                                  void              *data);
-   bool (*visit_int64)(const bson_iter_t *iter,
-                              const char        *key,
-                              int64_t       v_int64,
-                              void              *data);
-   bool (*visit_maxkey)(const bson_iter_t *iter,
-                               const char        *key,
-                               void              *data);
-   bool (*visit_minkey)(const bson_iter_t *iter,
-                               const char        *key,
-                               void              *data);
+   bool (*visit_symbol)     (const bson_iter_t *iter,
+                             const char        *key,
+                             size_t             v_symbol_len,
+                             const char        *v_symbol,
+                             void              *data);
+   bool (*visit_codewscope) (const bson_iter_t *iter,
+                             const char        *key,
+                             size_t             v_code_len,
+                             const char        *v_code,
+                             const bson_t      *v_scope,
+                             void              *data);
+   bool (*visit_int32)      (const bson_iter_t *iter,
+                             const char        *key,
+                             int32_t            v_int32,
+                             void              *data);
+   bool (*visit_timestamp)  (const bson_iter_t *iter,
+                             const char        *key,
+                             uint32_t           v_timestamp,
+                             uint32_t           v_increment,
+                             void              *data);
+   bool (*visit_int64)      (const bson_iter_t *iter,
+                             const char        *key,
+                             int64_t            v_int64,
+                             void              *data);
+   bool (*visit_maxkey)     (const bson_iter_t *iter,
+                             const char        *key,
+                             void              *data);
+   bool (*visit_minkey)     (const bson_iter_t *iter,
+                             const char        *key,
+                             void              *data);
 
    void *padding[9];
-} bson_visitor_t;
+} bson_visitor_t
+BSON_ALIGNED_END (8);
 
 
-typedef struct
+BSON_ALIGNED_BEGIN (8)
+typedef struct _bson_error_t
 {
    uint32_t domain;
    uint32_t code;
-   char          message[504];
-} bson_error_t;
+   char     message[504];
+} bson_error_t
+BSON_ALIGNED_END (8);
 
 
 BSON_STATIC_ASSERT (sizeof (bson_error_t) == 512);
@@ -488,8 +494,8 @@ BSON_STATIC_ASSERT (sizeof (bson_error_t) == 512);
  *
  * Returns: The next power of 2 from @v.
  */
-static BSON_INLINE uint32_t
-bson_next_power_of_two (uint32_t v)
+static BSON_INLINE size_t
+bson_next_power_of_two (size_t v)
 {
    v--;
    v |= v >> 1;
@@ -497,6 +503,9 @@ bson_next_power_of_two (uint32_t v)
    v |= v >> 4;
    v |= v >> 8;
    v |= v >> 16;
+#if BSON_WORD_SIZE == 64
+   v |= v >> 32;
+#endif
    v++;
 
    return v;

@@ -28,7 +28,7 @@
 #include <yajl/yajl_parser.h>
 #include <yajl/yajl_bytestack.h>
 
-#ifdef BSON_OS_WIN32
+#ifdef _WIN32
 # include <io.h>
 # include <share.h>
 #endif
@@ -66,6 +66,7 @@ typedef enum
    BSON_JSON_LF_UNDEFINED,
    BSON_JSON_LF_MINKEY,
    BSON_JSON_LF_MAXKEY,
+   BSON_JSON_LF_INT64,
 } bson_json_read_bson_state_t;
 
 
@@ -124,6 +125,9 @@ typedef union
    struct {
       bool has_maxkey;
    } maxkey;
+   struct {
+      int64_t value;
+   } v_int64;
 } bson_json_bson_data_t;
 
 
@@ -245,10 +249,12 @@ _bson_json_all_whitespace (const char *utf8)
 {
    bool all_whitespace = true;
 
-   for (; *utf8; utf8 = bson_utf8_next_char (utf8)) {
-      if (!isspace (bson_utf8_get_char (utf8))) {
-         all_whitespace = false;
-         break;
+   if (utf8) {
+      for (; *utf8; utf8 = bson_utf8_next_char (utf8)) {
+         if (!isspace (bson_utf8_get_char (utf8))) {
+            all_whitespace = false;
+            break;
+         }
       }
    }
 
@@ -295,7 +301,7 @@ _bson_json_buf_ensure (bson_json_buf_t *buf, /* IN */
    if (buf->n_bytes < len) {
       bson_free (buf->buf);
 
-      buf->n_bytes = bson_next_power_of_two ((uint32_t)len);
+      buf->n_bytes = bson_next_power_of_two (len);
       buf->buf = bson_malloc (buf->n_bytes);
    }
 }
@@ -416,6 +422,7 @@ _bson_json_read_integer (void    *_ctx, /* IN */
       case BSON_JSON_LF_REF:
       case BSON_JSON_LF_ID:
       case BSON_JSON_LF_UNDEFINED:
+      case BSON_JSON_LF_INT64:
       default:
          _bson_json_read_set_error (reader,
                                     "Invalid special type for integer read %d",
@@ -525,6 +532,25 @@ _bson_json_read_string (void                *_ctx, /* IN */
          bson->bson_type_data.ref.has_id = true;
          bson_oid_init_from_string (&bson->bson_type_data.ref.id, val_w_null);
          break;
+      case BSON_JSON_LF_INT64:
+         {
+            int64_t v64;
+            char *endptr = NULL;
+
+            errno = 0;
+            v64 = bson_ascii_strtoll ((const char *)val, &endptr, 10);
+
+            if (((v64 == INT64_MIN) || (v64 == INT64_MAX)) && (errno == ERANGE)) {
+               goto BAD_PARSE;
+            }
+
+            if (endptr != ((const char *)val + vlen)) {
+               goto BAD_PARSE;
+            }
+
+            bson_append_int64 (STACK_BSON_CHILD, key, (int)len, v64);
+         }
+         break;
       case BSON_JSON_LF_DATE:
       case BSON_JSON_LF_TIMESTAMP_T:
       case BSON_JSON_LF_TIMESTAMP_I:
@@ -592,7 +618,8 @@ _is_known_key (const char *key)
           IS_KEY ("$undefined") ||
           IS_KEY ("$maxKey") ||
           IS_KEY ("$minKey") ||
-          IS_KEY ("$timestamp"));
+          IS_KEY ("$timestamp") ||
+          IS_KEY ("$numberLong"));
 
 #undef IS_KEY
 
@@ -635,6 +662,7 @@ _bson_json_read_map_key (void          *_ctx, /* IN */
                         BSON_JSON_LF_UNDEFINED) else
       if HANDLE_OPTION ("$minKey", BSON_TYPE_MINKEY, BSON_JSON_LF_MINKEY) else
       if HANDLE_OPTION ("$maxKey", BSON_TYPE_MAXKEY, BSON_JSON_LF_MAXKEY) else
+      if HANDLE_OPTION ("$numberLong", BSON_TYPE_INT64, BSON_JSON_LF_INT64) else
       if (len == strlen ("$timestamp") &&
           memcmp (val, "$timestamp", len) == 0) {
          bson->bson_type = BSON_TYPE_TIMESTAMP;
@@ -808,6 +836,10 @@ _bson_json_read_end_map (void *_ctx) /* IN */
       case BSON_TYPE_MAXKEY:
          return bson_append_maxkey (STACK_BSON_CHILD, bson->key,
                                     (int)bson->key_buf.len);
+      case BSON_TYPE_INT64:
+         return bson_append_int64 (STACK_BSON_CHILD, bson->key,
+                                   (int)bson->key_buf.len,
+                                   bson->bson_type_data.v_int64.value);
       case BSON_TYPE_EOD:
       case BSON_TYPE_DOUBLE:
       case BSON_TYPE_UTF8:
@@ -820,7 +852,6 @@ _bson_json_read_end_map (void *_ctx) /* IN */
       case BSON_TYPE_CODEWSCOPE:
       case BSON_TYPE_INT32:
       case BSON_TYPE_TIMESTAMP:
-      case BSON_TYPE_INT64:
       default:
          _bson_json_read_set_error (reader, "Unknown type %d", bson->bson_type);
          return 0;

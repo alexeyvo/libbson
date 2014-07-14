@@ -16,6 +16,7 @@
 
 
 #include <bson.h>
+#include <bcon.h>
 #include <assert.h>
 #define BSON_INSIDE
 #include <bson-private.h>
@@ -841,7 +842,7 @@ test_bson_new_from_buffer (void)
    size_t len = 5;
    uint32_t len_le = BSON_UINT32_TO_LE(5);
 
-   memcpy(buf, &len_le, 4);
+   memcpy(buf, &len_le, sizeof (len_le));
 
    b = bson_new_from_buffer(&buf, &len, bson_realloc_ctx, NULL);
 
@@ -1324,74 +1325,89 @@ test_bson_destroy_with_steal (void)
    data = NULL;
 }
 
-/* test custom memory management functions uses double mem size */
-static int ntest_mem_func_calls[4];
-static void *
-test_malloc (size_t num_bytes)
-{
-   bson_atomic_int_add (&ntest_mem_func_calls[0], 1);
-   return malloc (num_bytes);
-}
-
-static void *
-test_calloc (size_t num, size_t size)
-{
-   bson_atomic_int_add (&ntest_mem_func_calls[1], 1);
-   return calloc(num, size);
-}
-
-static void *
-test_realloc (void *mem, size_t num_bytes)
-{
-   bson_atomic_int_add (&ntest_mem_func_calls[2], 1);
-   return realloc (mem, num_bytes);
-}
-
-static void *
-test_free (void *mem)
-{
-   bson_atomic_int_add (&ntest_mem_func_calls[3], 1);
-   free (mem);
-}
 
 static void
-should_use_custom_mem_functions (bool should_use_custom)
+test_bson_has_field (void)
 {
    bson_t *b;
-   uint8_t *buf = NULL;
-   size_t len = 0;
-   int i;
+   bool r;
 
-   memset (ntest_mem_func_calls, 0, sizeof (int) * 4);
+   b = BCON_NEW ("foo", "[", "{", "bar", BCON_INT32 (1), "}", "]");
 
-   /* call custom malloc */
-   b = bson_new ();
+   r = bson_has_field (b, "foo");
+   assert (r);
 
-   /* call custom free */
+   r = bson_has_field (b, "foo.0");
+   assert (r);
+
+   r = bson_has_field (b, "foo.0.bar");
+   assert (r);
+
+   r = bson_has_field (b, "0");
+   assert (!r);
+
+   r = bson_has_field (b, "bar");
+   assert (!r);
+
+   r = bson_has_field (b, "0.bar");
+   assert (!r);
+
    bson_destroy (b);
-
-   /* call custom calloc and realloc */
-   b = bson_new_from_buffer (&buf, &len, bson_realloc_ctx, NULL);
-
-   bson_destroy (b);
-
-   /* should be called > 0 times */
-   for (i = 0; i < 4; ++i)
-      if (should_use_custom)
-         assert_cmpint (ntest_mem_func_calls[i], > , 0);
-      else
-         assert_cmpint (ntest_mem_func_calls[i], == , 0);
 }
+
 
 static void
-test_bson_set_mem_functions (void)
+test_next_power_of_two (void)
 {
-   bson_set_mem_functions (test_malloc, test_calloc, test_realloc, test_free);
-   should_use_custom_mem_functions (true);
-   /* reset to default */
-   bson_set_mem_functions (NULL, NULL, NULL, NULL);
-   should_use_custom_mem_functions (false);
+   size_t s;
+
+   s = 3;
+   s = bson_next_power_of_two (s);
+   assert (s == 4);
+
+   s = 4;
+   s = bson_next_power_of_two (s);
+   assert (s == 4);
+
+   s = 33;
+   s = bson_next_power_of_two (s);
+   assert (s == 64);
+
+   s = 91;
+   s = bson_next_power_of_two (s);
+   assert (s == 128);
+
+   s = 939524096UL;
+   s = bson_next_power_of_two (s);
+   assert (s == 1073741824);
+
+   s = 1073741824UL;
+   s = bson_next_power_of_two (s);
+   assert (s == 1073741824UL);
+
+#if BSON_WORD_SIZE == 64
+   s = 4294967296LL;
+   s = bson_next_power_of_two (s);
+   assert (s == 4294967296LL);
+
+   s = 4294967297LL;
+   s = bson_next_power_of_two (s);
+   assert (s == 8589934592LL);
+
+   s = 17179901952LL;
+   s = bson_next_power_of_two (s);
+   assert (s == 34359738368LL);
+
+   s = 9223372036854775807ULL;
+   s = bson_next_power_of_two (s);
+   assert (s == 9223372036854775808ULL);
+
+   s = 36028795806651656ULL;
+   s = bson_next_power_of_two (s);
+   assert (s == 36028797018963968ULL);
+#endif
 }
+
 
 void
 test_bson_install (TestSuite *suite)
@@ -1445,5 +1461,7 @@ test_bson_install (TestSuite *suite)
    TestSuite_Add (suite, "/bson/macros", test_bson_macros);
    TestSuite_Add (suite, "/bson/clear", test_bson_clear);
    TestSuite_Add (suite, "/bson/destroy_with_steal", test_bson_destroy_with_steal);
-   TestSuite_Add (suite, "/bson/set_mem_functions", test_bson_set_mem_functions);
+   TestSuite_Add (suite, "/bson/has_field", test_bson_has_field);
+
+   TestSuite_Add (suite, "/util/next_power_of_two", test_next_power_of_two);
 }

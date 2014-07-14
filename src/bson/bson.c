@@ -16,6 +16,7 @@
 
 
 #include <stdarg.h>
+#include <string.h>
 
 #include "b64_ntop.h"
 #include "bson.h"
@@ -86,7 +87,7 @@ static const uint8_t gZero;
 
 static bool
 _bson_impl_inline_grow (bson_impl_inline_t *impl, /* IN */
-                        uint32_t            size) /* IN */
+                        size_t              size) /* IN */
 {
    bson_impl_alloc_t *alloc = (bson_impl_alloc_t *)impl;
    uint8_t *data;
@@ -96,7 +97,7 @@ _bson_impl_inline_grow (bson_impl_inline_t *impl, /* IN */
    BSON_ASSERT (!(impl->flags & BSON_FLAG_RDONLY));
    BSON_ASSERT (!(impl->flags & BSON_FLAG_CHILD));
 
-   if ((impl->len + size) <= sizeof impl->data) {
+   if (((size_t)impl->len + size) <= sizeof impl->data) {
       return true;
    }
 
@@ -143,9 +144,9 @@ _bson_impl_inline_grow (bson_impl_inline_t *impl, /* IN */
 
 static bool
 _bson_impl_alloc_grow (bson_impl_alloc_t *impl, /* IN */
-                       uint32_t           size) /* IN */
+                       size_t             size) /* IN */
 {
-   uint32_t req;
+   size_t req;
 
    BSON_ASSERT (impl);
 
@@ -153,7 +154,7 @@ _bson_impl_alloc_grow (bson_impl_alloc_t *impl, /* IN */
     * Determine how many bytes we need for this document in the buffer
     * including necessary trailing bytes for parent documents.
     */
-   req = (uint32_t)(impl->offset + impl->len + size + impl->depth);
+   req = (impl->offset + impl->len + size + impl->depth);
 
    if (req <= *impl->buflen) {
       return true;
@@ -161,7 +162,7 @@ _bson_impl_alloc_grow (bson_impl_alloc_t *impl, /* IN */
 
    req = bson_next_power_of_two (req);
 
-   if ((int32_t)req <= INT32_MAX && impl->realloc) {
+   if ((req <= INT32_MAX) && impl->realloc) {
       *impl->buf = impl->realloc (*impl->buf, req, impl->realloc_func_ctx);
       *impl->buflen = req;
       return true;
@@ -254,10 +255,10 @@ static BSON_INLINE void
 _bson_encode_length (bson_t *bson) /* IN */
 {
 #if BSON_BYTE_ORDER == BSON_LITTLE_ENDIAN
-   memcpy (_bson_data (bson), &bson->len, 4);
+   memcpy (_bson_data (bson), &bson->len, sizeof (bson->len));
 #else
    uint32_t length_le = BSON_UINT32_TO_LE (bson->len);
-   memcpy (_bson_data (bson), &length_le, 4);
+   memcpy (_bson_data (bson), &length_le, sizeof (length_le));
 #endif
 }
 
@@ -448,7 +449,9 @@ _bson_append_bson_begin (bson_t      *bson,        /* IN */
     */
    if ((bson->flags & BSON_FLAG_INLINE)) {
       BSON_ASSERT (bson->len <= 120);
-      _bson_grow (bson, 128 - bson->len);
+      if (!_bson_grow (bson, 128 - bson->len)) {
+         return false;
+      }
       BSON_ASSERT (!(bson->flags & BSON_FLAG_INLINE));
    }
 
@@ -717,6 +720,24 @@ bson_append_array (bson_t       *bson,       /* IN */
 
    if (key_length < 0) {
       key_length = (int)strlen (key);
+   }
+
+   /*
+    * Let's be a bit pedantic and ensure the array has properly formatted key
+    * names.  We will verify this simply by checking the first element for "0"
+    * if the array is non-empty.
+    */
+   if (array && !bson_empty (array)) {
+      bson_iter_t iter;
+
+      if (bson_iter_init (&iter, array) && bson_iter_next (&iter)) {
+         if (0 != strcmp ("0", bson_iter_key (&iter))) {
+            fprintf (stderr,
+                     "%s(): invalid array detected. first element of array "
+                     "parameter is not \"0\".\n",
+                     __FUNCTION__);
+         }
+      }
    }
 
    return _bson_append (bson, 4,
@@ -1794,9 +1815,9 @@ bson_reinit (bson_t *bson)
 
 
 bool
-bson_init_static (bson_t             *bson,
+bson_init_static (bson_t        *bson,
                   const uint8_t *data,
-                  uint32_t       length)
+                  size_t         length)
 {
    bson_impl_alloc_t *impl = (bson_impl_alloc_t *)bson;
    uint32_t len_le;
@@ -1808,9 +1829,9 @@ bson_init_static (bson_t             *bson,
       return false;
    }
 
-   memcpy (&len_le, data, 4);
+   memcpy (&len_le, data, sizeof (len_le));
 
-   if (BSON_UINT32_FROM_LE (len_le) != length) {
+   if ((size_t)BSON_UINT32_FROM_LE (len_le) != length) {
       return false;
    }
 
@@ -1819,7 +1840,7 @@ bson_init_static (bson_t             *bson,
    }
 
    impl->flags = BSON_FLAG_STATIC | BSON_FLAG_RDONLY;
-   impl->len = length;
+   impl->len = (uint32_t)length;
    impl->parent = NULL;
    impl->depth = 0;
    impl->buf = &impl->alloc;
@@ -1896,30 +1917,26 @@ bson_sized_new (size_t size)
 
 bson_t *
 bson_new_from_data (const uint8_t *data,
-                    uint32_t       length)
+                    size_t         length)
 {
    uint32_t len_le;
    bson_t *bson;
 
    bson_return_val_if_fail (data, NULL);
 
-   if (length < 5) {
+   if ((length < 5) || (length > INT_MAX) || data [length - 1]) {
       return NULL;
    }
 
-   if (data[length - 1]) {
-      return NULL;
-   }
+   memcpy (&len_le, data, sizeof (len_le));
 
-   memcpy (&len_le, data, 4);
-
-   if (length != BSON_UINT32_FROM_LE (len_le)) {
+   if (length != (size_t)BSON_UINT32_FROM_LE (len_le)) {
       return NULL;
    }
 
    bson = bson_sized_new (length);
    memcpy (_bson_data (bson), data, length);
-   bson->len = length;
+   bson->len = (uint32_t)length;
 
    return bson;
 }
@@ -1951,7 +1968,7 @@ bson_new_from_buffer (uint8_t           **buf,
       len_le = BSON_UINT32_TO_LE (length);
       *buf_len = 5;
       *buf = realloc_func (*buf, *buf_len, realloc_func_ctx);
-      memcpy (*buf, &len_le, 4);
+      memcpy (*buf, &len_le, sizeof (len_le));
       (*buf) [4] = '\0';
    } else {
       if ((*buf_len < 5) || (*buf_len > INT_MAX)) {
@@ -1959,7 +1976,7 @@ bson_new_from_buffer (uint8_t           **buf,
          return NULL;
       }
 
-      memcpy (&len_le, *buf, 4);
+      memcpy (&len_le, *buf, sizeof (len_le));
       length = BSON_UINT32_FROM_LE(len_le);
    }
 
@@ -2009,7 +2026,7 @@ bson_copy_to (const bson_t *src,
    }
 
    data = _bson_data (src);
-   len = bson_next_power_of_two (src->len);
+   len = bson_next_power_of_two ((size_t)src->len);
 
    adst = (bson_impl_alloc_t *)dst;
    adst->flags = BSON_FLAG_STATIC;
@@ -2186,9 +2203,15 @@ bson_has_field (const bson_t *bson,
                 const char   *key)
 {
    bson_iter_t iter;
+   bson_iter_t child;
 
    bson_return_val_if_fail (bson, false);
    bson_return_val_if_fail (key, false);
+
+   if (NULL != strchr (key, '.')) {
+      return (bson_iter_init (&iter, bson) &&
+              bson_iter_find_descendant (&iter, key, &child));
+   }
 
    return bson_iter_init_find (&iter, bson, key);
 }
@@ -2198,17 +2221,26 @@ int
 bson_compare (const bson_t *bson,
               const bson_t *other)
 {
-   uint32_t len;
+   const uint8_t *data1;
+   const uint8_t *data2;
+   size_t len1;
+   size_t len2;
    int ret;
 
-   if (bson->len != other->len) {
-      len = MIN (bson->len, other->len);
+   data1 = _bson_data (bson) + 4;
+   len1 = bson->len - 4;
 
-      if (!(ret = memcmp (_bson_data (bson), _bson_data (other), len))) {
-         ret = bson->len - other->len;
-      }
-   } else {
-      ret = memcmp (_bson_data (bson), _bson_data (other), bson->len);
+   data2 = _bson_data (other) + 4;
+   len2 = other->len - 4;
+
+   if (len1 == len2) {
+      return memcmp (data1, data2, len1);
+   }
+
+   ret = memcmp (data1, data2, MIN (len1, len2));
+
+   if (ret == 0) {
+      return len1 - len2;
    }
 
    return ret;
@@ -2234,12 +2266,16 @@ _bson_as_json_visit_utf8 (const bson_iter_t *iter,
    char *escaped;
 
    escaped = bson_utf8_escape_for_json (v_utf8, v_utf8_len);
-   bson_string_append (state->str, "\"");
-   bson_string_append (state->str, escaped);
-   bson_string_append (state->str, "\"");
-   bson_free (escaped);
 
-   return false;
+   if (escaped) {
+      bson_string_append (state->str, "\"");
+      bson_string_append (state->str, escaped);
+      bson_string_append (state->str, "\"");
+      bson_free (escaped);
+      return false;
+   }
+
+   return true;
 }
 
 
@@ -2496,10 +2532,14 @@ _bson_as_json_visit_before (const bson_iter_t *iter,
 
    if (state->keys) {
       escaped = bson_utf8_escape_for_json (key, -1);
-      bson_string_append (state->str, "\"");
-      bson_string_append (state->str, escaped);
-      bson_string_append (state->str, "\" : ");
-      bson_free (escaped);
+      if (escaped) {
+         bson_string_append (state->str, "\"");
+         bson_string_append (state->str, escaped);
+         bson_string_append (state->str, "\" : ");
+         bson_free (escaped);
+      } else {
+         return true;
+      }
    }
 
    state->count++;
@@ -2516,12 +2556,19 @@ _bson_as_json_visit_code (const bson_iter_t *iter,
                           void              *data)
 {
    bson_json_state_t *state = data;
+   char *escaped;
 
-   bson_string_append (state->str, "\"");
-   bson_string_append (state->str, v_code);
-   bson_string_append (state->str, "\"");
+   escaped = bson_utf8_escape_for_json (v_code, v_code_len);
 
-   return false;
+   if (escaped) {
+      bson_string_append (state->str, "\"");
+      bson_string_append (state->str, escaped);
+      bson_string_append (state->str, "\"");
+      bson_free (escaped);
+      return false;
+   }
+
+   return true;
 }
 
 
@@ -2551,12 +2598,19 @@ _bson_as_json_visit_codewscope (const bson_iter_t *iter,
                                 void              *data)
 {
    bson_json_state_t *state = data;
+   char *escaped;
 
-   bson_string_append (state->str, "\"");
-   bson_string_append (state->str, v_code);
-   bson_string_append (state->str, "\"");
+   escaped = bson_utf8_escape_for_json (v_code, v_code_len);
 
-   return false;
+   if (escaped) {
+      bson_string_append (state->str, "\"");
+      bson_string_append (state->str, escaped);
+      bson_string_append (state->str, "\"");
+      bson_free (escaped);
+      return false;
+   }
+
+   return true;
 }
 
 
@@ -2658,7 +2712,7 @@ bson_as_json (const bson_t *bson,
 
    if (bson_empty0 (bson)) {
       if (length) {
-         *length = 2;
+         *length = 3;
       }
 
       return bson_strdup ("{ }");
@@ -2672,9 +2726,12 @@ bson_as_json (const bson_t *bson,
    state.keys = true;
    state.str = bson_string_new ("{ ");
    state.depth = 0;
-   bson_iter_visit_all (&iter, &bson_as_json_visitors, &state);
 
-   if (iter.err_off) {
+   if (bson_iter_visit_all (&iter, &bson_as_json_visitors, &state) ||
+       iter.err_off) {
+      /*
+       * We were prematurely exited due to corruption or failed visitor.
+       */
       bson_string_free (state.str, true);
       if (length) {
          *length = 0;
@@ -2683,6 +2740,59 @@ bson_as_json (const bson_t *bson,
    }
 
    bson_string_append (state.str, " }");
+
+   if (length) {
+      *length = state.str->len;
+   }
+
+   return bson_string_free (state.str, false);
+}
+
+
+char *
+bson_array_as_json (const bson_t *bson,
+                    size_t       *length)
+{
+   bson_json_state_t state;
+   bson_iter_t iter;
+
+   bson_return_val_if_fail (bson, NULL);
+
+   if (length) {
+      *length = 0;
+   }
+
+   if (bson_empty0 (bson)) {
+      if (length) {
+         *length = 3;
+      }
+
+      return bson_strdup ("[ ]");
+   }
+
+   if (!bson_iter_init (&iter, bson)) {
+      return NULL;
+   }
+
+   state.count = 0;
+   state.keys = false;
+   state.str = bson_string_new ("[ ");
+   state.depth = 0;
+   bson_iter_visit_all (&iter, &bson_as_json_visitors, &state);
+
+   if (bson_iter_visit_all (&iter, &bson_as_json_visitors, &state) ||
+       iter.err_off) {
+      /*
+       * We were prematurely exited due to corruption or failed visitor.
+       */
+      bson_string_free (state.str, true);
+      if (length) {
+         *length = 0;
+      }
+      return NULL;
+   }
+
+   bson_string_append (state.str, " ]");
 
    if (length) {
       *length = state.str->len;

@@ -18,36 +18,22 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "bson-atomic.h"
 #include "bson-config.h"
 #include "bson-memory.h"
 
-/* standard function pointers. */
-bson_custom_malloc_func_t bson_malloc_func_p = malloc;
-bson_custom_calloc_func_t bson_calloc_func_p = calloc;
-#ifdef __APPLE__
-   bson_custom_realloc_func_t bson_realloc_func_p = reallocf;
-#else
-   bson_custom_realloc_func_t bson_realloc_func_p = realloc;
-#endif
-bson_custom_free_func_t bson_free_func_p = free;
 
-void bson_set_mem_functions(bson_custom_malloc_func_t custom_bson_malloc_func, /* IN */
-                            bson_custom_calloc_func_t custom_bson_calloc_func, /* IN */
-                            bson_custom_realloc_func_t custom_bson_realloc_func, /* IN */
-                            bson_custom_free_func_t custom_bson_free_func) /* IN */
-{
-   bson_malloc_func_p = custom_bson_malloc_func ? custom_bson_malloc_func : malloc;
-   bson_calloc_func_p = custom_bson_calloc_func ? custom_bson_calloc_func : calloc;
-   if (custom_bson_realloc_func)
-      bson_realloc_func_p = custom_bson_realloc_func;
-   else
+static bson_mem_vtable_t gMemVtable = {
+   malloc,
+   calloc,
 #ifdef __APPLE__
-      bson_realloc_func_p = reallocf;
+   reallocf,
 #else
-      bson_realloc_func_p = realloc;
+   realloc,
 #endif
-   bson_free_func_p = custom_bson_free_func ? custom_bson_free_func : free;
-}
+   free,
+};
+
 
 /*
  *--------------------------------------------------------------------------
@@ -78,7 +64,7 @@ bson_malloc (size_t num_bytes) /* IN */
 {
    void *mem;
 
-   if (!(mem = bson_malloc_func_p (num_bytes))) {
+   if (!(mem = gMemVtable.malloc (num_bytes))) {
       abort ();
    }
 
@@ -114,7 +100,7 @@ bson_malloc0 (size_t num_bytes) /* IN */
    void *mem = NULL;
 
    if (BSON_LIKELY (num_bytes)) {
-      if (BSON_UNLIKELY (!(mem = bson_calloc_func_p (1, num_bytes)))) {
+      if (BSON_UNLIKELY (!(mem = gMemVtable.calloc (1, num_bytes)))) {
          abort ();
       }
    }
@@ -155,11 +141,11 @@ bson_realloc (void   *mem,        /* IN */
     * however, OS X does not.
     */
    if (BSON_UNLIKELY (num_bytes == 0)) {
-      bson_free (mem);
+      gMemVtable.free (mem);
       return NULL;
    }
 
-   mem = bson_realloc_func_p (mem, num_bytes);
+   mem = gMemVtable.realloc (mem, num_bytes);
 
    if (BSON_UNLIKELY (!mem)) {
       abort ();
@@ -198,7 +184,7 @@ bson_realloc_ctx (void   *mem,        /* IN */
                   size_t  num_bytes,  /* IN */
                   void   *ctx)        /* IN */
 {
-   return bson_realloc(mem, num_bytes);
+   return gMemVtable.realloc (mem, num_bytes);
 }
 
 
@@ -227,7 +213,7 @@ bson_realloc_ctx (void   *mem,        /* IN */
 void
 bson_free (void *mem) /* IN */
 {
-   bson_free_func_p (mem);
+   gMemVtable.free (mem);
 }
 
 
@@ -259,6 +245,44 @@ bson_zero_free (void  *mem,  /* IN */
 {
    if (BSON_LIKELY (mem)) {
       memset (mem, 0, size);
-      bson_free (mem);
+      gMemVtable.free (mem);
    }
+}
+
+
+/*
+ *--------------------------------------------------------------------------
+ *
+ * bson_mem_set_vtable --
+ *
+ *       This function will change our allocationt vtable.
+ *
+ *       It is imperitive that this is called at the beginning of the
+ *       process before any memory has been allocated by the default
+ *       allocator.
+ *
+ * Returns:
+ *       None.
+ *
+ * Side effects:
+ *       None.
+ *
+ *--------------------------------------------------------------------------
+ */
+
+void
+bson_mem_set_vtable (const bson_mem_vtable_t *vtable)
+{
+   bson_return_if_fail (vtable);
+
+   if (!vtable->malloc ||
+       !vtable->calloc ||
+       !vtable->realloc ||
+       !vtable->free) {
+      fprintf (stderr, "Failure to install BSON vtable, "
+                       "missing functions.\n");
+      return;
+   }
+
+   gMemVtable = *vtable;
 }

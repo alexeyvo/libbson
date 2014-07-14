@@ -30,31 +30,35 @@
 
 BSON_BEGIN_DECLS
 
-typedef void *(*bson_custom_malloc_func_t) (size_t num_bytes);
-typedef void *(*bson_custom_calloc_func_t) (size_t num, size_t size);
-typedef void *(*bson_custom_realloc_func_t) (void *mem, size_t num_bytes);
-typedef void (*bson_custom_free_func_t) (void *mem);
 
 typedef void *(*bson_realloc_func) (void  *mem,
                                     size_t num_bytes,
                                     void  *ctx);
 
 
-void *bson_malloc    (size_t  num_bytes);
-void *bson_malloc0   (size_t  num_bytes);
-void *bson_realloc   (void   *mem,
-                      size_t  num_bytes);
-void *bson_realloc_ctx (void   *mem,
-                        size_t  num_bytes,
-                        void   *ctx);
-void  bson_free      (void   *mem);
-void  bson_zero_free (void   *mem,
-                      size_t  size);
+typedef struct _bson_mem_vtable_t
+{
+   void *(*malloc)    (size_t  num_bytes);
+   void *(*calloc)    (size_t  n_members,
+                       size_t  num_bytes);
+   void *(*realloc)   (void   *mem,
+                       size_t  num_bytes);
+   void  (*free)      (void   *mem);
+   void *padding [4];
+} bson_mem_vtable_t;
 
-void bson_set_mem_functions(bson_custom_malloc_func_t,
-                            bson_custom_calloc_func_t,
-                            bson_custom_realloc_func_t,
-                            bson_custom_free_func_t);
+
+void  bson_mem_set_vtable (const bson_mem_vtable_t *vtable);
+void *bson_malloc         (size_t  num_bytes);
+void *bson_malloc0        (size_t  num_bytes);
+void *bson_realloc        (void   *mem,
+                           size_t  num_bytes);
+void *bson_realloc_ctx    (void   *mem,
+                           size_t  num_bytes,
+                           void   *ctx);
+void  bson_free           (void   *mem);
+void  bson_zero_free      (void   *mem,
+                           size_t  size);
 
 
 BSON_END_DECLS

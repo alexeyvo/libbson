@@ -1,11 +1,11 @@
 Name:           libbson
-Version:        0.6.9
+Version:        0.8.5
 Release:        1%{?dist}
 Summary:        BSON library
 
 License:        ASL 2.0
 URL:            https://github.com/mongodb/libbson
-Source0:        https://github.com/mongodb/libbson/releases/download/0.6.9/libbson-0.6.9.tar.gz
+Source0:        https://github.com/mongodb/libbson/releases/download/0.8.3/libbson-0.8.3.tar.gz
 BuildRequires:  automake
 
 %description
@@ -28,7 +28,7 @@ developing applications that use %{name}.
 automake 
 
 %build
-%configure --disable-static --disable-silent-rules --enable-debug-symbols --enable-hardening --docdir=%{_pkgdocdir}
+%configure --disable-static --disable-silent-rules --enable-debug-symbols --enable-hardening --enable-optimizations --docdir=%{_pkgdocdir} --enable-man-pages --enable-html-docs
 make %{?_smp_mflags}
 
 %check
@@ -53,9 +53,23 @@ find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 %{_libdir}/%{name}-1.0.so
 %{_libdir}/pkgconfig/%{name}-1.0.pc
 %{_prefix}/share/man/man3/*
-%{_prefix}/share/man/man7/*
 
 %changelog
+* Thu Jun 20 2014 Christian Hergert <christian.hergert@mongodb.com> - 0.8.5-1
+- Bump for development builds.
+
+* Thu Jun 20 2014 Christian Hergert <christian.hergert@mongodb.com> - 0.8.4-1
+- Bump for 0.8.4.
+
+* Thu Jun 10 2014 Christian Hergert <christian.hergert@mongodb.com> - 0.8.3-1
+- Bump for development builds.
+
+* Thu Jun 05 2014 Christian Hergert <christian.hergert@mongodb.com> - 0.8.2-1
+- Release 0.8.2
+
+* Thu May 29 2014 Christian Hergert <christian.hergert@mongodb.com> - 0.8.0-1
+- Release 0.8.0
+
 * Tue May 06 2014 Christian Hergert <christian.hergert@mongodb.com> - 0.6.9-1
 - Update to 0.6.9 from git.
 - Enable debug symbols

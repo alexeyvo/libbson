@@ -16,8 +16,8 @@
 
 
 /*
- * This program will print each BSON document contained in the provided files
- * as a JSON string to STDOUT.
+ * This program will print each JSON document contained in the provided files
+ * as a BSON string to STDOUT.
  */
 
 
@@ -33,7 +33,7 @@ main (int   argc,
    bson_json_reader_t *reader;
    bson_error_t error;
    const char *filename;
-   bson_t *b_out;
+   bson_t doc = BSON_INITIALIZER;
    int i;
    int b;
 
@@ -44,8 +44,6 @@ main (int   argc,
       fprintf (stderr, "usage: %s FILE...\n", argv[0]);
       return 1;
    }
-
-   b_out = bson_new ();
 
    /*
     * Process command line arguments expecting each to be a filename.
@@ -67,20 +65,23 @@ main (int   argc,
       }
 
       /*
-       * Convert each incoming document to JSON and print to stdout.
+       * Convert each incoming document to BSON and print to stdout.
        */
-      while ((b = bson_json_reader_read (reader, b_out, &error))) {
+      while ((b = bson_json_reader_read (reader, &doc, &error))) {
          if (b < 0) {
             fprintf (stderr, "Error in json parsing:\n%s\n", error.message);
             abort ();
          }
 
-         fwrite (bson_get_data(b_out), 1, b_out->len, stdout);
-         bson_reinit (b_out);
+         if (fwrite (bson_get_data(&doc), 1, doc.len, stdout) != doc.len) {
+            fprintf (stderr, "Failed to write to stdout, exiting.\n");
+            exit (1);
+         }
+         bson_reinit (&doc);
       }
 
       bson_json_reader_destroy (reader);
-      bson_destroy (b_out);
+      bson_destroy (&doc);
    }
 
    return 0;

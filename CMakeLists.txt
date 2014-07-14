@@ -10,10 +10,10 @@ include(InstallRequiredSystemLibraries)
 set (SOURCE_DIR "${PROJECT_SOURCE_DIR}/")
 
 set (BSON_MAJOR_VERSION 0)
-set (BSON_MINOR_VERSION 6)
-set (BSON_MICRO_VERSION 9)
+set (BSON_MINOR_VERSION 8)
+set (BSON_MICRO_VERSION 5)
 set (BSON_API_VERSION 1.0)
-set (BSON_VERSION 0.6.9)
+set (BSON_VERSION 0.8.5)
 
 set (CPACK_RESOURCE_FILE_LICENSE "${SOURCE_DIR}/COPYING")
 set (CPACK_PACKAGE_VERSION_MAJOR ${BSON_MAJOR_VERSION})
@@ -93,6 +93,7 @@ set (SOURCES
    ${SOURCE_DIR}/src/bson/bson-string.c
    ${SOURCE_DIR}/src/bson/bson-utf8.c
    ${SOURCE_DIR}/src/bson/bson-value.c
+   ${SOURCE_DIR}/src/bson/bson-version.c
    ${SOURCE_DIR}/src/bson/bson-writer.c
    ${SOURCE_DIR}/src/yajl/yajl_alloc.c
    ${SOURCE_DIR}/src/yajl/yajl_buf.c

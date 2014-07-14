@@ -36,9 +36,6 @@ Build configuration:
   Link Time Optimization (experimental)            : ${enable_lto}
 
 Documentation:
-  Generate man pages                               : ${bson_build_doc}
-  Install man pages                                : ${bson_install_man}
-
-Bindings:
-  Python (experimental)                            : ${ax_python_header}
+  man                                              : ${enable_man_pages}
+  HTML                                             : ${enable_html_docs}
 "

@@ -1,3 +1,70 @@
+Libbson 0.8.4
+=============
+
+Another incremental release with a couple of new functions and bugfixes.
+
+In this release you will find the following changes:
+
+ * Alignment fixes for Solaris Studio C compiler.
+ * RPM and Debian packaging helpers.
+ * bson_gettimeofday() has dropped the deprecated timezone field used
+   when calling posix gettimeofday(). This eases portability concerns.
+   It is technically an ABI break, but since the field was never set,
+   in reality it shouldn't be an issue.
+ * Multi-byte optimizations for bson_oid_to_string() have been disabled
+   on non-x86 based platforms. This should aid in architecture portability.
+ * The JSON parser can now support $numberLong.
+ * bson_ascii_strtoll() has been added, which is a portable strtoll()
+   implementation. This is primarily useful for Windows users and is
+   used by the JSON parser.
+ * A bug was fixed in bson_iter_find_descendent() where the wrong field
+   could be matched if it's prefix matched the query.
+ * bson_array_as_json() has been added to convert a bson_t as a top-level
+   array.
+
+Thanks to:
+ * Kyle Suarez
+ * Itay Neeman
+
+Happy Hacking!
+
+
+Libbson 0.8.2
+=============
+
+A bugfix release is here as a follow up to 0.8.0.
+
+In this release you will find the following changes:
+
+ * A fix for BCON when used from C++.
+ * Change bson_next_power_of_two() to accept size_t. This should not be
+   an ABI break since it is static inline.
+
+Happy Hacking!
+
+
+Libbson 0.8.0
+=============
+
+It's that time again, time for another Libbson release!
+
+This cycle includes much, much more documentation for your perusing. There is
+much more cross-referencing and structure for your navigation pleasure.
+
+We've improved support for Libbson on a few more exotic platforms. SPARC
+support is looking pretty good these days.
+
+You'll also find some new examples in this release to help you get started a
+bit faster. If there is something you'd like to see, just ask!
+
+There are a few ABI breaks this cycle, as we are well on the road to a 1.0 and
+would like things as clean as possible. I anticipate a few more during the next
+couple of cycles, but we will try to keep them to a minimum.  With that said,
+you *WILL* need to recompile your application against 0.8.0.
+
+Happy Hacking!
+
+
 Libbson 0.6.8
 =============
 

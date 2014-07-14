@@ -43,7 +43,7 @@
 /*
  * Globals.
  */
-static bson_context_t *gContextDefault;
+static bson_context_t gContextDefault;
 
 
 #if defined(__linux__)
@@ -285,7 +285,7 @@ _bson_context_get_oid_seq64 (bson_context_t *context, /* IN */
    BSON_ASSERT (oid);
 
    seq = BSON_UINT64_TO_BE (context->seq64++);
-   memcpy (&oid->bytes[4], &seq, 8);
+   memcpy (&oid->bytes[4], &seq, sizeof (seq));
 }
 
 
@@ -312,64 +312,19 @@ _bson_context_get_oid_seq64_threadsafe (bson_context_t *context, /* IN */
    int64_t seq = bson_atomic_int64_add (&context->seq64, 1);
 
    seq = BSON_UINT64_TO_BE (seq);
-   memcpy (&oid->bytes[4], &seq, 8);
+   memcpy (&oid->bytes[4], &seq, sizeof (seq));
 }
 
 
-/**
- * bson_context_new:
- * @flags: A #bson_context_flags_t.
- *
- * Returns: (transfer full): A newly allocated bson_context_t that should be
- *   freed with bson_context_destroy().
- */
-/*
- *--------------------------------------------------------------------------
- *
- * bson_context_new --
- *
- *       Initializes a new context with the flags specified.
- *
- *       In most cases, you want to call this with @flags set to
- *       BSON_CONTEXT_NONE.
- *
- *       If you are running on Linux, %BSON_CONTEXT_USE_TASK_ID can result
- *       in a healthy speedup for multi-threaded scenarios.
- *
- *       If you absolutely must have a single context for your application
- *       and use more than one thread, then %BSON_CONTEXT_THREAD_SAFE should
- *       be bitwise-or'd with your flags. This requires synchronization
- *       between threads.
- *
- *       If you expect your hostname to change often, you may consider
- *       specifying %BSON_CONTEXT_DISABLE_HOST_CACHE so that gethostname()
- *       is called for every OID generated. This is much slower.
- *
- *       If you expect your pid to change without notice, such as from an
- *       unexpected call to fork(), then specify
- *       %BSON_CONTEXT_DISABLE_PID_CACHE.
- *
- * Returns:
- *       A newly allocated bson_context_t that should be freed with
- *       bson_context_destroy().
- *
- * Side effects:
- *       None.
- *
- *--------------------------------------------------------------------------
- */
-
-bson_context_t *
-bson_context_new (bson_context_flags_t flags) /* IN */
+static void
+_bson_context_init (bson_context_t *context,    /* IN */
+                    bson_context_flags_t flags) /* IN */
 {
-   bson_context_t *context;
    struct timeval tv;
    uint16_t pid;
    unsigned int seed[3];
    unsigned int real_seed;
    bson_oid_t oid;
-
-   context = bson_malloc0 (sizeof *context);
 
    context->flags = flags;
    context->oid_get_host = _bson_context_get_oid_host_cached;
@@ -385,7 +340,7 @@ bson_context_new (bson_context_flags_t flags) /* IN */
     * The seed itself is made up of the current time in seconds, milliseconds,
     * and pid xored together. I welcome better solutions if at all necessary.
     */
-   bson_gettimeofday (&tv, NULL);
+   bson_gettimeofday (&tv);
    seed[0] = (unsigned int)tv.tv_sec;
    seed[1] = (unsigned int)tv.tv_usec;
    seed[2] = _bson_getpid ();
@@ -430,6 +385,52 @@ bson_context_new (bson_context_flags_t flags) /* IN */
 #endif
       memcpy (&context->pidbe[0], &pid, 2);
    }
+}
+
+
+/*
+ *--------------------------------------------------------------------------
+ *
+ * bson_context_new --
+ *
+ *       Initializes a new context with the flags specified.
+ *
+ *       In most cases, you want to call this with @flags set to
+ *       BSON_CONTEXT_NONE.
+ *
+ *       If you are running on Linux, %BSON_CONTEXT_USE_TASK_ID can result
+ *       in a healthy speedup for multi-threaded scenarios.
+ *
+ *       If you absolutely must have a single context for your application
+ *       and use more than one thread, then %BSON_CONTEXT_THREAD_SAFE should
+ *       be bitwise-or'd with your flags. This requires synchronization
+ *       between threads.
+ *
+ *       If you expect your hostname to change often, you may consider
+ *       specifying %BSON_CONTEXT_DISABLE_HOST_CACHE so that gethostname()
+ *       is called for every OID generated. This is much slower.
+ *
+ *       If you expect your pid to change without notice, such as from an
+ *       unexpected call to fork(), then specify
+ *       %BSON_CONTEXT_DISABLE_PID_CACHE.
+ *
+ * Returns:
+ *       A newly allocated bson_context_t that should be freed with
+ *       bson_context_destroy().
+ *
+ * Side effects:
+ *       None.
+ *
+ *--------------------------------------------------------------------------
+ */
+
+bson_context_t *
+bson_context_new (bson_context_flags_t flags)
+{
+   bson_context_t *context;
+
+   context = bson_malloc0 (sizeof *context);
+   _bson_context_init (context, flags);
 
    return context;
 }
@@ -455,33 +456,9 @@ bson_context_new (bson_context_flags_t flags) /* IN */
 void
 bson_context_destroy (bson_context_t *context)  /* IN */
 {
-   memset (context, 0, sizeof *context);
-   bson_free (context);
-}
-
-
-/*
- *--------------------------------------------------------------------------
- *
- * _bson_context_destroy_default --
- *
- *       Cleanup the default context on exit.
- *
- * Returns:
- *       None.
- *
- * Side effects:
- *       None.
- *
- *--------------------------------------------------------------------------
- */
-
-static void
-_bson_context_destroy_default (void)
-{
-   if (gContextDefault) {
-      bson_context_destroy (gContextDefault);
-      gContextDefault = NULL;
+   if (context != &gContextDefault) {
+      memset (context, 0, sizeof *context);
+      bson_free (context);
    }
 }
 
@@ -489,9 +466,9 @@ _bson_context_destroy_default (void)
 static
 BSON_ONCE_FUN(_bson_context_init_default)
 {
-   gContextDefault = bson_context_new ((BSON_CONTEXT_THREAD_SAFE |
-                                        BSON_CONTEXT_DISABLE_PID_CACHE));
-   atexit (_bson_context_destroy_default);
+   _bson_context_init (&gContextDefault,
+                       (BSON_CONTEXT_THREAD_SAFE |
+                        BSON_CONTEXT_DISABLE_PID_CACHE));
    BSON_ONCE_RETURN;
 }
 
@@ -522,5 +499,5 @@ bson_context_get_default (void)
 
    bson_once (&once, _bson_context_init_default);
 
-   return gContextDefault;
+   return &gContextDefault;
 }

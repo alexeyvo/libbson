@@ -24,6 +24,7 @@
 #include "bson-context-private.h"
 #include "bson-md5.h"
 #include "bson-oid.h"
+#include "bson-string.h"
 
 
 /*
@@ -125,7 +126,7 @@ bson_oid_init_sequence (bson_oid_t     *oid,     /* OUT */
 
    now = BSON_UINT32_TO_BE (now);
 
-   memcpy (&oid->bytes[0], &now, 4);
+   memcpy (&oid->bytes[0], &now, sizeof (now));
    context->oid_get_seq64 (context, oid);
 }
 
@@ -166,7 +167,7 @@ bson_oid_init (bson_oid_t     *oid,     /* OUT */
    }
 
    now = BSON_UINT32_TO_BE (now);
-   memcpy (&oid->bytes[0], &now, 4);
+   memcpy (&oid->bytes[0], &now, sizeof (now));
 
    context->oid_get_host (context, oid);
    context->oid_get_pid (context, oid);
@@ -292,6 +293,25 @@ bson_oid_to_string
    (const bson_oid_t *oid,                                   /* IN */
     char              str[BSON_ENSURE_ARRAY_PARAM_SIZE(25)]) /* OUT */
 {
+#if !defined(__i386__) && !defined(__x86_64__)
+   bson_return_if_fail (oid);
+   bson_return_if_fail (str);
+
+   bson_snprintf (str, 25,
+                  "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+                  oid->bytes[0],
+                  oid->bytes[1],
+                  oid->bytes[2],
+                  oid->bytes[3],
+                  oid->bytes[4],
+                  oid->bytes[5],
+                  oid->bytes[6],
+                  oid->bytes[7],
+                  oid->bytes[8],
+                  oid->bytes[9],
+                  oid->bytes[10],
+                  oid->bytes[11]);
+#else
    uint16_t *dst;
    uint8_t *id = (uint8_t *)oid;
 
@@ -312,6 +332,7 @@ bson_oid_to_string
    dst[10] = gHexCharPairs[id[10]];
    dst[11] = gHexCharPairs[id[11]];
    str[24] = '\0';
+#endif
 }
 
 
@@ -457,6 +478,10 @@ bson_oid_is_valid (const char *str,    /* IN */
    size_t i;
 
    bson_return_val_if_fail (str, false);
+
+   if ((length == 25) && (str [24] == '\0')) {
+      length = 24;
+   }
 
    if (length == 24) {
       for (i = 0; i < length; i++) {

@@ -23,6 +23,10 @@
 
 #include <bson.h>
 
+
+BSON_BEGIN_DECLS
+
+
 #define BCON_STACK_MAX 100
 
 #define BCON_ENSURE_DECLARE(fun, type) \
@@ -213,13 +217,13 @@ typedef struct bcon_extract_ctx_frame
    bson_iter_t iter;
 } bcon_extract_ctx_frame_t;
 
-typedef struct bcon_append_ctx
+typedef struct _bcon_append_ctx_t
 {
    bcon_append_ctx_frame_t stack[BCON_STACK_MAX];
    int                     n;
 } bcon_append_ctx_t;
 
-typedef struct bcon_extract_ctx
+typedef struct _bcon_extract_ctx_t
 {
    bcon_extract_ctx_frame_t stack[BCON_STACK_MAX];
    int                      n;
@@ -281,5 +285,9 @@ bcon_new (void *unused,
 
 const char *bson_bcon_magic  (void) BSON_GNUC_CONST;
 const char *bson_bcone_magic (void) BSON_GNUC_CONST;
+
+
+BSON_END_DECLS
+
 
 #endif

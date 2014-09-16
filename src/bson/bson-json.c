@@ -176,6 +176,38 @@ typedef struct
 } bson_json_reader_handle_fd_t;
 
 
+static void *
+bson_yajl_malloc_func (void   *ctx,
+                       size_t  sz)
+{
+   return bson_malloc (sz);
+}
+
+
+static void
+bson_yajl_free_func (void *ctx,
+                     void *ptr)
+{
+   bson_free (ptr);
+}
+
+
+static void *
+bson_yajl_realloc_func (void   *ctx,
+                        void   *ptr,
+                        size_t  sz)
+{
+   return bson_realloc (ptr, sz);
+}
+
+
+static yajl_alloc_funcs gYajlAllocFuncs = {
+   bson_yajl_malloc_func,
+   bson_yajl_realloc_func,
+   bson_yajl_free_func,
+};
+
+
 #define STACK_ELE(_delta, _name) (bson->stack[(_delta) + bson->n]._name)
 #define STACK_BSON(_delta) \
       (((_delta) + bson->n) == 0 ? bson->bson : &STACK_ELE (_delta, bson))
@@ -186,26 +218,29 @@ typedef struct
 #define STACK_PUSH_ARRAY(statement) \
    do { \
       if (bson->n >= (STACK_MAX - 1)) { return 0; } \
-      if (bson->n == -1) { return 0; } \
       bson->n++; \
       STACK_I = 0; \
       STACK_IS_ARRAY = 1; \
-      statement; \
+      if (bson->n != 0) { \
+         statement; \
+      } \
    } while (0)
 #define STACK_PUSH_DOC(statement) \
    do { \
       if (bson->n >= (STACK_MAX - 1)) { return 0; } \
       bson->n++; \
+      STACK_IS_ARRAY = 0; \
       if (bson->n != 0) { \
-         STACK_IS_ARRAY = 0; \
          statement; \
       } \
    } while (0)
 #define STACK_POP_ARRAY(statement) \
    do { \
       if (!STACK_IS_ARRAY) { return 0; } \
-      if (bson->n <= 0) { return 0; } \
-      statement; \
+      if (bson->n < 0) { return 0; } \
+      if (bson->n > 0) { \
+         statement; \
+      } \
       bson->n--; \
    } while (0)
 #define STACK_POP_DOC(statement) \
@@ -228,6 +263,10 @@ typedef struct
 #define BASIC_YAJL_CB_BAIL_IF_NOT_NORMAL(_type) \
    if (bson->read_state != BSON_JSON_REGULAR) { \
       _bson_json_read_set_error (reader, "Invalid read of %s in state %d", \
+                                 (_type), bson->read_state); \
+      return 0; \
+   } else if (! key) { \
+      _bson_json_read_set_error (reader, "Invalid read of %s without key in state %d", \
                                  (_type), bson->read_state); \
       return 0; \
    }
@@ -312,7 +351,7 @@ _bson_json_read_fixup_key (bson_json_reader_bson_t *bson) /* IN */
 {
    BSON_ASSERT (bson);
 
-   if (bson->n > 0 && STACK_IS_ARRAY) {
+   if (bson->n >= 0 && STACK_IS_ARRAY) {
       _bson_json_buf_ensure (&bson->key_buf, 12);
       bson->key_buf.len = bson_uint32_to_string (STACK_I, &bson->key,
                                                  (char *)bson->key_buf.buf, 12);
@@ -388,6 +427,8 @@ _bson_json_read_integer (void    *_ctx, /* IN */
    bs = bson->bson_state;
 
    if (rs == BSON_JSON_REGULAR) {
+      BASIC_YAJL_CB_BAIL_IF_NOT_NORMAL ("integer");
+
       if (val <= INT32_MAX) {
          bson_append_int32 (STACK_BSON_CHILD, key, (int)len, (int)val);
       } else {
@@ -466,6 +507,7 @@ _bson_json_read_string (void                *_ctx, /* IN */
    bs = bson->bson_state;
 
    if (rs == BSON_JSON_REGULAR) {
+      BASIC_YAJL_CB_BAIL_IF_NOT_NORMAL ("string");
       bson_append_utf8 (STACK_BSON_CHILD, key, (int)len, (const char *)val, (int)vlen);
    } else if (rs == BSON_JSON_IN_BSON_TYPE || rs ==
               BSON_JSON_IN_BSON_TYPE_TIMESTAMP_VALUES) {
@@ -598,15 +640,12 @@ _bson_json_read_start_map (void *_ctx) /* IN */
 
 
 static bool
-_is_known_key (const char *key)
+_is_known_key (const char *key, size_t len)
 {
    bool ret;
 
-#define IS_KEY(k) (0 == strncmp (k, key, strlen(k) - 1))
+#define IS_KEY(k) (len == strlen(k) && (0 == memcmp (k, key, len)))
 
-   /*
-    * For the LULZ, yajl includes the end " character as part of the key name.
-    */
    ret = (IS_KEY ("$regex") ||
           IS_KEY ("$options") ||
           IS_KEY ("$oid") ||
@@ -636,7 +675,7 @@ _bson_json_read_map_key (void          *_ctx, /* IN */
    bson_json_reader_bson_t *bson = &reader->bson;
 
    if (bson->read_state == BSON_JSON_IN_START_MAP) {
-      if (len > 0 && val[0] == '$' && _is_known_key ((const char *)val)) {
+      if (len > 0 && val[0] == '$' && _is_known_key ((const char *)val, len)) {
          bson->read_state = BSON_JSON_IN_BSON_TYPE;
          bson->bson_type = (bson_type_t) 0;
          memset (&bson->bson_type_data, 0, sizeof bson->bson_type_data);
@@ -883,11 +922,23 @@ _bson_json_read_end_map (void *_ctx) /* IN */
 static int
 _bson_json_read_start_array (void *_ctx) /* IN */
 {
-   BASIC_YAJL_CB_PREAMBLE;
-   BASIC_YAJL_CB_BAIL_IF_NOT_NORMAL ("[");
+   const char *key;
+   size_t len;
+   bson_json_reader_t *reader = (bson_json_reader_t *)_ctx;
+   bson_json_reader_bson_t *bson = &reader->bson;
 
-   STACK_PUSH_ARRAY (bson_append_array_begin (STACK_BSON_PARENT, key, (int)len,
-                                              STACK_BSON_CHILD));
+   if (bson->n < 0) {
+      STACK_PUSH_ARRAY (NULL);
+   } else {
+      _bson_json_read_fixup_key (bson);
+      key = bson->key;
+      len = bson->key_buf.len;
+
+      BASIC_YAJL_CB_BAIL_IF_NOT_NORMAL ("[");
+
+      STACK_PUSH_ARRAY (bson_append_array_begin (STACK_BSON_PARENT, key, (int)len,
+                                                 STACK_BSON_CHILD));
+   }
 
    return 1;
 }
@@ -899,10 +950,18 @@ _bson_json_read_end_array (void *_ctx) /* IN */
    bson_json_reader_t *reader = (bson_json_reader_t *)_ctx;
    bson_json_reader_bson_t *bson = &reader->bson;
 
-   BASIC_YAJL_CB_BAIL_IF_NOT_NORMAL ("]");
+   if (bson->read_state != BSON_JSON_REGULAR) {
+      _bson_json_read_set_error (reader, "Invalid read of %s in state %d",
+                                 "]", bson->read_state);
+      return 0;
+   }
 
    STACK_POP_ARRAY (bson_append_array_end (STACK_BSON_PARENT,
                                            STACK_BSON_CHILD));
+   if (bson->n == -1) {
+      bson->read_state = BSON_JSON_DONE;
+      return 0;
+   }
 
    return 1;
 }
@@ -1091,7 +1150,7 @@ bson_json_reader_new (void                 *data,           /* IN */
    p->buf = bson_malloc (buf_size);
    p->buf_size = buf_size ? buf_size : BSON_JSON_DEFAULT_BUF_SIZE;
 
-   r->yh = yajl_alloc (&read_cbs, NULL, r);
+   r->yh = yajl_alloc (&read_cbs, &gYajlAllocFuncs, r);
 
    yajl_config (r->yh,
                 yajl_dont_validate_strings |
@@ -1162,7 +1221,7 @@ bson_json_data_reader_new (bool   allow_multiple, /* IN */
 {
    bson_json_data_reader_t *dr = bson_malloc0 (sizeof *dr);
 
-   return bson_json_reader_new (dr, &_bson_json_data_reader_cb, &free,
+   return bson_json_reader_new (dr, &_bson_json_data_reader_cb, &bson_free,
                                 allow_multiple, size);
 }
 

@@ -414,12 +414,28 @@ test_bson_json_read_missing_complex(void)
 static void
 test_bson_json_read_invalid_json(void)
 {
-   const char * json = "{ \n\
+   const char *json = "{ \n\
       \"foo\" : { \n\
    }";
+   bson_t *b;
 
    test_bson_json_error (json, BSON_ERROR_JSON,
                          BSON_JSON_ERROR_READ_CORRUPT_JS);
+
+   b = bson_new_from_json ((uint8_t *)"1", 1, NULL);
+   assert (!b);
+
+   b = bson_new_from_json ((uint8_t *)"*", 1, NULL);
+   assert (!b);
+
+   b = bson_new_from_json ((uint8_t *)"", 0, NULL);
+   assert (!b);
+
+   b = bson_new_from_json ((uint8_t *)"asdfasdf", -1, NULL);
+   assert (!b);
+
+   b = bson_new_from_json ((uint8_t *)"{\"a\":*}", -1, NULL);
+   assert (!b);
 }
 
 static ssize_t
@@ -468,6 +484,48 @@ test_bson_json_number_long (void)
    bson_destroy (&b);
 
    assert (!bson_init_from_json (&b, json2, -1, &error));
+}
+
+static void
+test_bson_json_inc (void)
+{
+   /* test that reproduces a bug with special mode checking.  Specifically,
+    * mistaking '$inc' for '$id'
+    *
+    * From https://github.com/mongodb/mongo-c-driver/issues/62
+    */
+   bson_error_t error;
+   const char *json = "{ \"$inc\" : { \"ref\" : 1 } }";
+   bson_t b;
+   bool r;
+
+   r = bson_init_from_json (&b, json, -1, &error);
+   if (!r) fprintf (stderr, "%s\n", error.message);
+   assert (r);
+   bson_destroy (&b);
+}
+
+static void
+test_bson_json_array (void)
+{
+   bson_error_t error;
+   const char *json = "[ 0, 1, 2, 3 ]";
+   bson_t b, compare;
+   bool r;
+
+   bson_init(&compare);
+   bson_append_int32(&compare, "0", 1, 0);
+   bson_append_int32(&compare, "1", 1, 1);
+   bson_append_int32(&compare, "2", 1, 2);
+   bson_append_int32(&compare, "3", 1, 3);
+
+   r = bson_init_from_json (&b, json, -1, &error);
+   if (!r) fprintf (stderr, "%s\n", error.message);
+   assert (r);
+
+   bson_eq_bson (&b, &compare);
+   bson_destroy (&compare);
+   bson_destroy (&b);
 }
 
 static void
@@ -529,6 +587,8 @@ test_json_install (TestSuite *suite)
    TestSuite_Add (suite, "/bson/as_json_spacing", test_bson_as_json_spacing);
    TestSuite_Add (suite, "/bson/array_as_json", test_bson_array_as_json);
    TestSuite_Add (suite, "/bson/json/read", test_bson_json_read);
+   TestSuite_Add (suite, "/bson/json/inc", test_bson_json_inc);
+   TestSuite_Add (suite, "/bson/json/array", test_bson_json_array);
    TestSuite_Add (suite, "/bson/json/read/missing_complex", test_bson_json_read_missing_complex);
    TestSuite_Add (suite, "/bson/json/read/invalid_json", test_bson_json_read_invalid_json);
    TestSuite_Add (suite, "/bson/json/read/bad_cb", test_bson_json_read_bad_cb);

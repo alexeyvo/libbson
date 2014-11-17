@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 MongoDB, Inc.
+ * Copyright 2014 MongoDB, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,28 +15,22 @@
  */
 
 
-#ifndef BSON_CONTEXT_H
-#define BSON_CONTEXT_H
+#ifndef BSON_ISO8601_PRIVATE_H
+#define BSON_ISO8601_PRIVATE_H
 
 
-#if !defined (BSON_INSIDE) && !defined (BSON_COMPILATION)
-# error "Only <bson.h> can be included directly."
-#endif
-
-
+#include "bson-compat.h"
 #include "bson-macros.h"
-#include "bson-types.h"
 
 
 BSON_BEGIN_DECLS
 
-
-bson_context_t *bson_context_new         (bson_context_flags_t flags);
-void            bson_context_destroy     (bson_context_t *context);
-bson_context_t *bson_context_get_default (void) BSON_GNUC_CONST;
-
+bool
+_bson_iso8601_date_parse (const char   *str,
+                          int32_t       len,
+                          int64_t      *out);
 
 BSON_END_DECLS
 
 
-#endif /* BSON_CONTEXT_H */
+#endif /* BSON_ISO8601_PRIVATE_H */

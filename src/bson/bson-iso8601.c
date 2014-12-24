@@ -18,6 +18,7 @@
 #include "bson-compat.h"
 #include "bson-macros.h"
 #include "bson-error.h"
+#include "bson-iso8601-private.h"
 
 #ifndef _WIN32
 # include "bson-timegm-private.h"
@@ -284,7 +285,7 @@ _bson_iso8601_date_parse (const char *str,
    }
 
 #ifdef BSON_OS_WIN32
-   win_sys_time.wMilliseconds = millis;
+   win_sys_time.wMilliseconds = (WORD)millis;
    win_sys_time.wSecond = sec;
    win_sys_time.wMinute = min;
    win_sys_time.wHour = hour;

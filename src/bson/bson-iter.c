@@ -328,7 +328,7 @@ bson_iter_find_descendant (bson_iter_t *iter,       /* INOUT */
 
    if (_bson_iter_find_with_len (iter, dotkey, (int)sublen)) {
       if (!dot) {
-         *descendant = *iter;
+         memcpy (descendant, iter, sizeof *iter);
          return true;
       }
 

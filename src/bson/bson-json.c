@@ -538,7 +538,7 @@ _bson_json_read_string (void                *_ctx, /* IN */
       case BSON_JSON_LF_TYPE:
          bson->bson_type_data.binary.has_subtype = true;
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 # define SSCANF sscanf_s
 #else
 # define SSCANF sscanf
@@ -1242,7 +1242,7 @@ _bson_json_data_reader_cb (void    *_ctx,
       return -1;
    }
 
-   bytes = MIN (len, ctx->len - ctx->bytes_parsed);
+   bytes = BSON_MIN (len, ctx->len - ctx->bytes_parsed);
 
    memcpy (buf, ctx->data + ctx->bytes_parsed, bytes);
 

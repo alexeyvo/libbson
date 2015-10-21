@@ -19,6 +19,7 @@ test_libbson_SOURCES = \
 	tests/test-string.c \
 	tests/test-utf8.c \
 	tests/test-value.c \
+	tests/test-version.c \
 	tests/test-writer.c \
 	tests/test-bcon-basic.c \
 	tests/test-bcon-extract.c
@@ -28,8 +29,12 @@ test_libbson_CPPFLAGS = \
 	-I$(top_srcdir)/src/bson \
 	-I$(top_builddir)/src/bson \
 	$(PTHREAD_CFLAGS) \
+	$(COVERAGE_CFLAGS) \
 	-DBSON_COMPILATION \
-	-DBINARY_DIR="\"$(top_srcdir)/tests/binary\""
+	-DBINARY_DIR="\"$(top_srcdir)/tests/binary\"" \
+	-DJSON_DIR="\"$(top_srcdir)/tests/json\""
+
+test_libbson_LDFLAGS = $(COVERAGE_LDFLAGS)
 
 test_libbson_LDADD = \
 	$(PTHREAD_LIBS) \
@@ -142,4 +147,5 @@ EXTRA_DIST += \
 	tests/binary/test7.bson \
 	tests/binary/test8.bson \
 	tests/binary/test9.bson \
-	tests/binary/trailingnull.bson
+	tests/binary/trailingnull.bson \
+	tests/json/test.json

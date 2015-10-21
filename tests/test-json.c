@@ -11,6 +11,11 @@
 # define BINARY_DIR "tests/binary"
 #endif
 
+#ifndef JSON_DIR
+# define JSON_DIR "tests/json"
+#endif
+
+
 static void
 test_bson_as_json (void)
 {
@@ -122,10 +127,18 @@ test_bson_as_json_double (void)
 
    b = bson_new();
    assert(bson_append_double(b, "foo", -1, 123.456));
+   assert(bson_append_double(b, "bar", -1, 3));
+   assert(bson_append_double(b, "baz", -1, -1));
+   assert(bson_append_double(b, "quux", -1, 1.0001));
+   assert(bson_append_double(b, "huge", -1, 1e99));
    str = bson_as_json(b, &len);
-   assert(len >= 19);
-   assert(!strncmp("{ \"foo\" : 123.456", str, 17));
-   assert(!strcmp(" }", str + len - 2));
+   ASSERT_CMPSTR (str,
+                  "{"
+                  " \"foo\" : 123.456,"
+                  " \"bar\" : 3,"
+                  " \"baz\" : -1,"
+                  " \"quux\" : 1.0001,"
+                  " \"huge\" : 1e+99 }");
    bson_free(str);
    bson_destroy(b);
 }
@@ -384,6 +397,52 @@ test_bson_json_read(void)
 }
 
 static void
+test_json_reader_new_from_file (void)
+{
+   const char *path = JSON_DIR"/test.json";
+   const char *bar;
+   const bson_oid_t *oid;
+   bson_oid_t oid_expected;
+   int32_t one;
+   bson_t bson = BSON_INITIALIZER;
+   bson_json_reader_t *reader;
+   bson_error_t error;
+
+   reader = bson_json_reader_new_from_file (path, &error);
+   assert (reader);
+
+   /* read two documents */
+   ASSERT_CMPINT (1, ==, bson_json_reader_read (reader, &bson, &error));
+
+   BCON_EXTRACT (&bson, "foo", BCONE_UTF8 (bar), "a", BCONE_INT32 (one));
+   ASSERT_CMPSTR ("bar", bar);
+   ASSERT_CMPINT (1, ==, one);
+
+   bson_reinit (&bson);
+   ASSERT_CMPINT (1, ==, bson_json_reader_read (reader, &bson, &error));
+
+   BCON_EXTRACT (&bson, "_id", BCONE_OID (oid));
+   bson_oid_init_from_string (&oid_expected, "aabbccddeeff001122334455");
+   assert (bson_oid_equal (&oid_expected, oid));
+
+   bson_destroy (&bson);
+   bson_json_reader_destroy (reader);
+}
+
+static void
+test_json_reader_new_from_bad_path (void)
+{
+   const char *bad_path = JSON_DIR"/does-not-exist";
+   bson_json_reader_t *reader;
+   bson_error_t error;
+
+   reader = bson_json_reader_new_from_file (bad_path, &error);
+   assert (!reader);
+   ASSERT_CMPINT (BSON_ERROR_READER, ==, error.domain);
+   ASSERT_CMPINT (BSON_ERROR_READER_BADFD, ==, error.code);
+}
+
+static void
 test_bson_json_error (const char              *json,
                       int                      domain,
                       bson_json_error_code_t   code)
@@ -457,8 +516,36 @@ test_bson_json_read_bad_cb(void)
    r = bson_json_reader_read (reader, &bson, &error);
 
    assert(r == -1);
-   assert(error.domain = BSON_ERROR_JSON);
-   assert(error.code = BSON_JSON_ERROR_READ_CB_FAILURE);
+   assert(error.domain == BSON_ERROR_JSON);
+   assert(error.code == BSON_JSON_ERROR_READ_CB_FAILURE);
+
+   bson_json_reader_destroy (reader);
+   bson_destroy (&bson);
+}
+
+static ssize_t
+test_bson_json_read_invalid_helper (void *ctx, uint8_t *buf, size_t len)
+{
+   assert (len);
+   *buf = 0x80;  /* no UTF-8 sequence can start with 0x80 */
+   return 1;
+}
+
+static void
+test_bson_json_read_invalid(void)
+{
+   bson_error_t error;
+   bson_json_reader_t *reader;
+   int r;
+   bson_t bson = BSON_INITIALIZER;
+
+   reader = bson_json_reader_new (NULL, test_bson_json_read_invalid_helper, NULL, false, 0);
+
+   r = bson_json_reader_read (reader, &bson, &error);
+
+   assert(r == -1);
+   assert(error.domain == BSON_ERROR_JSON);
+   assert(error.code == BSON_JSON_ERROR_READ_CORRUPT_JS);
 
    bson_json_reader_destroy (reader);
    bson_destroy (&bson);
@@ -646,5 +733,10 @@ test_json_install (TestSuite *suite)
    TestSuite_Add (suite, "/bson/json/read/missing_complex", test_bson_json_read_missing_complex);
    TestSuite_Add (suite, "/bson/json/read/invalid_json", test_bson_json_read_invalid_json);
    TestSuite_Add (suite, "/bson/json/read/bad_cb", test_bson_json_read_bad_cb);
+   TestSuite_Add (suite, "/bson/json/read/invalid", test_bson_json_read_invalid);
+   TestSuite_Add (suite, "/bson/json/read/file", test_json_reader_new_from_file);
+   TestSuite_Add (suite, "/bson/json/read/bad_path", test_json_reader_new_from_bad_path);
+   TestSuite_Add (suite, "/bson/json/read/invalid", test_bson_json_read_invalid);
+   TestSuite_Add (suite, "/bson/json/read/invalid", test_bson_json_read_invalid);
    TestSuite_Add (suite, "/bson/json/read/$numberLong", test_bson_json_number_long);
 }

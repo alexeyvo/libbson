@@ -10,10 +10,11 @@ include(InstallRequiredSystemLibraries)
 set (SOURCE_DIR "${PROJECT_SOURCE_DIR}/")
 
 set (BSON_MAJOR_VERSION 1)
-set (BSON_MINOR_VERSION 1)
-set (BSON_MICRO_VERSION 5)
+set (BSON_MINOR_VERSION 3)
+set (BSON_MICRO_VERSION 0)
+set (BSON_PRERELEASE_VERSION dev)
 set (BSON_API_VERSION 1.0)
-set (BSON_VERSION 1.1.5-dev)
+set (BSON_VERSION 1.3.0-dev)
 
 set (CPACK_RESOURCE_FILE_LICENSE "${SOURCE_DIR}/COPYING")
 set (CPACK_PACKAGE_VERSION_MAJOR ${BSON_MAJOR_VERSION})
@@ -39,16 +40,30 @@ if (MSVC)
    set (BSON_HAVE_SNPRINTF 0)
    set (BSON_HAVE_STDBOOL_H 0)
    set (BSON_HAVE_STRNLEN 0)
+   set (BSON_EXTRA_ALIGN 1)
 else ()
    find_package (Threads)
 
    set (BSON_OS 1)
    CHECK_FUNCTION_EXISTS(clock_gettime BSON_HAVE_CLOCK_GETTIME)
+   if (NOT BSON_HAVE_CLOCK_GETTIME)
+      set(BSON_HAVE_CLOCK_GETTIME 0)
+   endif ()
    CHECK_FUNCTION_EXISTS(strnlen BSON_HAVE_STRNLEN)
+   if (NOT BSON_HAVE_STRNLEN)
+      set(BSON_HAVE_STRNLEN 0)
+   endif ()
    CHECK_FUNCTION_EXISTS(snprintf BSON_HAVE_SNPRINTF)
+   if (NOT BSON_HAVE_SNPRINTF)
+      set(BSON_HAVE_SNPRINTF 0)
+   endif ()
    CHECK_INCLUDE_FILE(stdbool.h BSON_HAVE_STDBOOL_H)
+   if (NOT BSON_HAVE_STDBOOL_H)
+      set(BSON_HAVE_STDBOOL_H 0)
+   endif ()
 endif ()
 
+set (BSON_HAVE_ATOMIC_32_ADD_AND_FETCH 1)
 set (BSON_HAVE_ATOMIC_64_ADD_AND_FETCH 1)
 
 if (BSON_BIG_ENDIAN)
@@ -76,6 +91,10 @@ include_directories("${PROJECT_BINARY_DIR}/src/bson")
 include_directories("${SOURCE_DIR}/src/bson")
 include_directories("${SOURCE_DIR}/src")
 
+if (APPLE)
+   cmake_policy(SET CMP0042 OLD)
+endif()
+
 set (SOURCES
    ${SOURCE_DIR}/src/bson/bcon.c
    ${SOURCE_DIR}/src/bson/bson.c
@@ -92,9 +111,10 @@ set (SOURCES
    ${SOURCE_DIR}/src/bson/bson-oid.c
    ${SOURCE_DIR}/src/bson/bson-reader.c
    ${SOURCE_DIR}/src/bson/bson-string.c
+   ${SOURCE_DIR}/src/bson/bson-timegm.c
    ${SOURCE_DIR}/src/bson/bson-utf8.c
    ${SOURCE_DIR}/src/bson/bson-value.c
-   ${SOURCE_DIR}/src/bson/bson-version.c
+   ${SOURCE_DIR}/src/bson/bson-version-functions.c
    ${SOURCE_DIR}/src/bson/bson-writer.c
    ${SOURCE_DIR}/src/yajl/yajl_alloc.c
    ${SOURCE_DIR}/src/yajl/yajl_buf.c
@@ -132,6 +152,7 @@ set (HEADERS
    ${SOURCE_DIR}/src/bson/bson-types.h
    ${SOURCE_DIR}/src/bson/bson-utf8.h
    ${SOURCE_DIR}/src/bson/bson-value.h
+   ${SOURCE_DIR}/src/bson/bson-version-functions.h
    ${SOURCE_DIR}/src/bson/bson-writer.h
 )
 
@@ -185,6 +206,7 @@ add_executable(test-libbson
    ${SOURCE_DIR}/tests/test-string.c
    ${SOURCE_DIR}/tests/test-utf8.c
    ${SOURCE_DIR}/tests/test-value.c
+   ${SOURCE_DIR}/tests/test-version.c
    ${SOURCE_DIR}/tests/test-writer.c
    ${SOURCE_DIR}/tests/test-bcon-basic.c
    ${SOURCE_DIR}/tests/test-bcon-extract.c
@@ -193,7 +215,8 @@ add_executable(test-libbson
 target_link_libraries(test-libbson bson_static)
 add_test(NAME test-libbson COMMAND test-libbson)
 
-file(COPY ${SOURCE_DIR}/tests/binary DESTINATION ${PROJECT_BINARY_DIR}/tests)
+file(COPY ${SOURCE_DIR}/tests/binary ${SOURCE_DIR}/tests/json
+     DESTINATION ${PROJECT_BINARY_DIR}/tests)
 
 install(
   TARGETS bson_shared bson_static

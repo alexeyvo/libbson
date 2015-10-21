@@ -1,11 +1,11 @@
 Name:           libbson
-Version:        1.1.5
+Version:        1.2.0
 Release:        1%{?dist}
 Summary:        BSON library
 
 License:        ASL 2.0
 URL:            https://github.com/mongodb/libbson
-Source0:        https://github.com/mongodb/libbson/releases/download/1.1.5/libbson-1.1.5.tar.gz
+Source0:        https://github.com/mongodb/libbson/releases/download/1.2.0-beta/libbson-1.2.0-beta.tar.gz
 BuildRequires:  automake
 
 %description
@@ -56,8 +56,29 @@ find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
 
 %changelog
 
-* Wed Apr 1 2015 Jason Carey <jason.carey@mongodb.com> - 1.1.5-1
-- post-release bump
+* Tue October 13 2015 A. Jesse Jiryu Davis <jesse@mongodb.com> - 1.2.0-1
+- Release 1.2.0
+
+* Wed September 23 2015 A. Jesse Jiryu Davis <jesse@mongodb.com> - 1.1.11-1
+- Release 1.1.11
+
+* Tue July 21 2015 A. Jesse Jiryu Davis <jesse@mongodb.com> - 1.1.10-1
+- Release 1.1.10
+
+* Sun June 28 2015 A. Jesse Jiryu Davis <jesse@mongodb.com> - 1.1.9-1
+- Release 1.1.9
+
+* Sun June 21 2015 A. Jesse Jiryu Davis <jesse@mongodb.com> - 1.1.8-1
+- Release 1.1.8
+
+* Tue June 9 2015 A. Jesse Jiryu Davis <jesse@mongodb.com> - 1.1.7-1
+- Release 1.1.7
+
+* Tue May 18 2015 A. Jesse Jiryu Davis <jesse@mongodb.com> - 1.1.6-1
+- Release 1.1.6
+
+* Tue May 12 2015 A. Jesse Jiryu Davis <jesse@mongodb.com> - 1.1.5-1
+- Release 1.1.5
 
 * Wed Apr 1 2015 Jason Carey <jason.carey@mongodb.com> - 1.1.4-1
 - Bump for 1.1.4.

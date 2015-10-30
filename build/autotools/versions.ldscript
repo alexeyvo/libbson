@@ -41,6 +41,8 @@ LIBBSON_1.0 {
         bson_array_as_json;
         bson_as_json;
         bson_ascii_strtoll;
+        bson_atomic_int_add;
+        bson_atomic_int64_add;
         bson_bcon_magic;
         bson_bcone_magic;
         bson_compare;
@@ -186,3 +188,10 @@ LIBBSON_1.1 {
     global:
         bson_copy_to_excluding_noinit;
 } LIBBSON_1.0;
+
+LIBBSON_1.2 {
+    global:
+        bson_get_version;
+        bson_check_version;
+        bson_mem_restore_vtable;
+} LIBBSON_1.1;

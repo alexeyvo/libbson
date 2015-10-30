@@ -19,6 +19,7 @@ test_libbson_SOURCES = \
 	tests/test-string.c \
 	tests/test-utf8.c \
 	tests/test-value.c \
+	tests/test-version.c \
 	tests/test-writer.c \
 	tests/test-bcon-basic.c \
 	tests/test-bcon-extract.c
@@ -28,18 +29,17 @@ test_libbson_CPPFLAGS = \
 	-I$(top_srcdir)/src/bson \
 	-I$(top_builddir)/src/bson \
 	$(PTHREAD_CFLAGS) \
+	$(COVERAGE_CFLAGS) \
 	-DBSON_COMPILATION \
-	-DBINARY_DIR="\"$(top_srcdir)/tests/binary\""
+	-DBINARY_DIR="\"$(top_srcdir)/tests/binary\"" \
+	-DJSON_DIR="\"$(top_srcdir)/tests/json\""
+
+test_libbson_LDFLAGS = $(COVERAGE_LDFLAGS)
 
 test_libbson_LDADD = \
 	$(PTHREAD_LIBS) \
 	libbson-1.0.la \
 	libbson.la
-
-
-if ENABLE_PYTHON
-PYTEST_DEPS = cbson.la
-endif
 
 
 check: test
@@ -51,13 +51,10 @@ TEST_ARGS += -f -p
 endif
 
 
-test: $(TEST_PROGS) $(PYTEST_DEPS)
+test: $(TEST_PROGS)
 	@ for TEST_PROG in $(TEST_PROGS) ; do \
 		$(LIBTOOL) --mode=execute $$VALGRIND ./$$TEST_PROG $(TEST_ARGS) -F test.log; \
 	done
-if ENABLE_PYTHON
-	@ LD_LIBRARY_PATH=.libs DYLD_LIBRARY_PATH=.libs PYTHONPATH=.libs ./tests/test_cbson.py
-endif
 if CAN_ABI_CHECK
 	@ $(srcdir)/tests/abicheck.sh "$(srcdir)/src/libbson.symbols"
 endif
@@ -142,4 +139,5 @@ EXTRA_DIST += \
 	tests/binary/test7.bson \
 	tests/binary/test8.bson \
 	tests/binary/test9.bson \
-	tests/binary/trailingnull.bson
+	tests/binary/trailingnull.bson \
+	tests/json/test.json

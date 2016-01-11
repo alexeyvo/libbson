@@ -1853,6 +1853,11 @@ bson_init_static (bson_t        *bson,
    return true;
 }
 
+bson_t *
+bson_alloc (void)
+{
+   return bson_malloc (sizeof (bson_t));
+}
 
 bson_t *
 bson_new (void)

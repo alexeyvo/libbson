@@ -175,6 +175,13 @@ BSON_BEGIN_DECLS
 
 
 /**
+* allocate memory for bson_t without initializing
+* call bson_free() to deallocate memory
+*/
+bson_t *
+bson_alloc (void);
+
+/**
  * bson_new:
  *
  * Allocates a new bson_t structure. Call the various bson_append_*()

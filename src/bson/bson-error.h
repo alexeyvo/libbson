@@ -30,14 +30,14 @@ BSON_BEGIN_DECLS
 #define BSON_ERROR_JSON   1
 #define BSON_ERROR_READER 2
 
-#define BSON_ERROR_BUFFER_SIZE      64
 
-
+BSON_API
 void  bson_set_error  (bson_error_t *error,
                        uint32_t      domain,
                        uint32_t      code,
                        const char   *format,
                        ...) BSON_GNUC_PRINTF (4, 5);
+BSON_API
 char *bson_strerror_r (int           err_code,
                        char         *buf,
                        size_t        buflen);

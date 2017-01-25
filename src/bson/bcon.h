@@ -21,7 +21,7 @@
 #ifndef BCON_H_
 #define BCON_H_
 
-#include <bson.h>
+#include "bson.h"
 
 
 BSON_BEGIN_DECLS
@@ -56,6 +56,7 @@ BCON_ENSURE_DECLARE (int32, int32_t)
 BCON_ENSURE_DECLARE (int32_ptr, int32_t *)
 BCON_ENSURE_DECLARE (int64, int64_t)
 BCON_ENSURE_DECLARE (int64_ptr, int64_t *)
+BCON_ENSURE_DECLARE (const_decimal128_ptr, const bson_decimal128_t *)
 BCON_ENSURE_DECLARE (bool, bool)
 BCON_ENSURE_DECLARE (bool_ptr, bool *)
 BCON_ENSURE_DECLARE (bson_type, bson_type_t)
@@ -107,6 +108,8 @@ BCON_ENSURE_DECLARE (const_bson_iter_ptr, const bson_iter_t *)
    BCON_ENSURE (int32, (_increment))
 #define BCON_INT64(_val) \
    BCON_MAGIC, BCON_TYPE_INT64, BCON_ENSURE (int64, (_val))
+#define BCON_DECIMAL128(_val) \
+   BCON_MAGIC, BCON_TYPE_DECIMAL128, BCON_ENSURE (const_decimal128_ptr, (_val))
 #define BCON_MAXKEY BCON_MAGIC, BCON_TYPE_MAXKEY
 #define BCON_MINKEY BCON_MAGIC, BCON_TYPE_MINKEY
 #define BCON(_val) \
@@ -159,6 +162,8 @@ BCON_ENSURE_DECLARE (const_bson_iter_ptr, const bson_iter_t *)
    BCON_ENSURE_STORAGE (int32_ptr, (_increment))
 #define BCONE_INT64(_val) BCONE_MAGIC, BCON_TYPE_INT64, \
    BCON_ENSURE_STORAGE (int64_ptr, (_val))
+#define BCONE_DECIMAL128(_val) BCONE_MAGIC, BCON_TYPE_DECIMAL128, \
+   BCON_ENSURE_STORAGE (const_decimal128_ptr, (_val))
 #define BCONE_MAXKEY BCONE_MAGIC, BCON_TYPE_MAXKEY
 #define BCONE_MINKEY BCONE_MAGIC, BCON_TYPE_MINKEY
 #define BCONE_SKIP(_val) BCONE_MAGIC, BCON_TYPE_SKIP, \
@@ -189,6 +194,7 @@ typedef enum
    BCON_TYPE_INT32,
    BCON_TYPE_TIMESTAMP,
    BCON_TYPE_INT64,
+   BCON_TYPE_DECIMAL128,
    BCON_TYPE_MAXKEY,
    BCON_TYPE_MINKEY,
    BCON_TYPE_BCON,
@@ -229,42 +235,52 @@ typedef struct _bcon_extract_ctx_t
    int                      n;
 } bcon_extract_ctx_t;
 
+BSON_API
 void
 bcon_append (bson_t *bson,
              ...) BSON_GNUC_NULL_TERMINATED;
+BSON_API
 void
 bcon_append_ctx (bson_t            *bson,
                  bcon_append_ctx_t *ctx,
                  ...) BSON_GNUC_NULL_TERMINATED;
+BSON_API
 void
 bcon_append_ctx_va (bson_t            *bson,
                     bcon_append_ctx_t *ctx,
                     va_list           *va);
+BSON_API
 void
 bcon_append_ctx_init (bcon_append_ctx_t *ctx);
 
+BSON_API
 void
 bcon_extract_ctx_init (bcon_extract_ctx_t *ctx);
 
+BSON_API
 void
 bcon_extract_ctx (bson_t             *bson,
                   bcon_extract_ctx_t *ctx,
                   ...) BSON_GNUC_NULL_TERMINATED;
 
+BSON_API
 bool
 bcon_extract_ctx_va (bson_t             *bson,
                      bcon_extract_ctx_t *ctx,
                      va_list            *ap);
 
+BSON_API
 bool
 bcon_extract (bson_t *bson,
               ...) BSON_GNUC_NULL_TERMINATED;
 
+BSON_API
 bool
 bcon_extract_va (bson_t             *bson,
                  bcon_extract_ctx_t *ctx,
                  ...) BSON_GNUC_NULL_TERMINATED;
 
+BSON_API
 bson_t *
 bcon_new (void *unused,
           ...) BSON_GNUC_NULL_TERMINATED;
@@ -291,7 +307,9 @@ bcon_new (void *unused,
 #define BCON_NEW(...) \
    bcon_new (NULL, __VA_ARGS__, (void *)NULL)
 
+BSON_API
 const char *bson_bcon_magic  (void) BSON_GNUC_CONST;
+BSON_API
 const char *bson_bcone_magic (void) BSON_GNUC_CONST;
 
 

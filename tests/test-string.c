@@ -158,6 +158,23 @@ test_bson_strndup (void)
    s = bson_strndup("asdf", 2);
    assert(!strcmp(s, "as"));
    bson_free(s);
+
+   s = bson_strndup ("asdf", 10);
+   assert (!strcmp (s, "asdf"));
+   bson_free (s);
+
+   /* Some tests where we truncate to size n-1, n, n+1 */
+   s = bson_strndup ("asdf", 3);
+   assert (!strcmp (s, "asd"));
+   bson_free (s);
+
+   s = bson_strndup ("asdf", 4);
+   assert (!strcmp (s, "asdf"));
+   bson_free (s);
+
+   s = bson_strndup ("asdf", 5);
+   assert (!strcmp (s, "asdf"));
+   bson_free (s);
 }
 
 
@@ -175,6 +192,7 @@ typedef struct
    const char *str;
    int         base;
    int64_t     rv;
+   const char *remaining;
    int         _errno;
 } strtoll_test;
 
@@ -182,45 +200,79 @@ typedef struct
 static void
 test_bson_ascii_strtoll (void)
 {
-   char *endptr = NULL;
+#ifdef END
+#undef END
+#endif
+#define END ""
    int64_t rv;
    int i;
+   char *endptr;
    strtoll_test tests[] = {
-      { "1", 10, 1, 0 },
-      { "+1", 10, 1, 0 },
-      { "-1", 10, -1, 0 },
-      { "0", 10, 0, 0 },
-      { "-0", 10, 0, 0 },
-      { "+0", 10, 0, 0 },
-      { "68719476736", 10, 68719476736, 0 },
-      { "-68719476736", 10, -68719476736, 0 },
-      { "+68719476736", 10, 68719476736, 0 },
-      { "   68719476736  ", 10, 68719476736, 0 },
-      { "   -68719476736  ", 10, -68719476736, 0 },
-      { "   4611686018427387904LL", 10, 4611686018427387904LL, 0 },
-      { " -4611686018427387904LL ", 10, -4611686018427387904LL, 0 },
-      { "0x1000000000", 16, 68719476736, 0 },
-      { "-0x1000000000", 16, -68719476736, 0 },
-      { "+0x1000000000", 16, 68719476736, 0 },
-      { "01234", 8, 668, 0 },
-      { "-01234", 8, -668, 0 },
-      { "+01234", 8, 668, 0 },
+      /* input, base, expected output, # of chars parsed, expected errno */
+      { "1", 10, 1, END, 0 },
+      { "+1", 10, 1, END, 0 },
+      { "-1", 10, -1, END, 0 },
+      { "0", 10, 0, END, 0 },
+      { "0 ", 10, 0, " ", 0 },
+      { " 0 ", 10, 0, " ", 0 },
+      { " 0", 10, 0, END, 0 },
+      { " 0\"", 10, 0, "\"", 0 },
+      { "0l", 10, 0, "l", 0 },
+      { "0l ", 10, 0, "l ", 0 },
+      { "0u", 10, 0, "u", 0 },
+      { "0u ", 10, 0, "u ", 0 },
+      { "0L", 10, 0, "L", 0 },
+      { "0L ", 10, 0, "L ", 0 },
+      { "0U", 10, 0, "U", 0 },
+      { "0U ", 10, 0, "U ", 0 },
+      { "-0", 10, 0, END, 0 },
+      { "+0", 10, 0, END, 0 },
+      { "010", 8, 8, END, 0 },
+      /* stroll "takes as many characters as possible to form a valid base-n
+       * integer", so it ignores "8" and returns 0 */
+      { "08", 0, 0, "8", 0 },
+      { "010", 10, 10, END, 0 },
+      { "010", 8, 8, END, 0 },
+      { "010", 0, 8, END, 0 },
+      { "68719476736", 10, 68719476736, END, 0 },
+      { "-68719476736", 10, -68719476736, END, 0 },
+      { "+68719476736", 10, 68719476736, END, 0 },
+      { "   68719476736  ", 10, 68719476736, "  ", 0 },
+      { "   68719476736  ", 0, 68719476736, "  ", 0 },
+      { "   -68719476736  ", 10, -68719476736, "  ", 0 },
+      { "   -68719476736  ", 0, -68719476736, "  ", 0 },
+      { "   4611686018427387904LL", 10, 4611686018427387904LL, "LL", 0 },
+      { " -4611686018427387904LL ", 10, -4611686018427387904LL, "LL ", 0 },
+      { "0x1000000000", 16, 68719476736, END, 0 },
+      { "0x1000000000", 0, 68719476736, END, 0 },
+      { "-0x1000000000", 16, -68719476736, END, 0 },
+      { "-0x1000000000", 0, -68719476736, END, 0 },
+      { "+0x1000000000", 16, 68719476736, END, 0 },
+      { "+0x1000000000", 0, 68719476736, END, 0 },
+      { "01234", 8, 668, END, 0 },
+      { "01234", 0, 668, END, 0 },
+      { "-01234", 8, -668, END, 0 },
+      { "-01234", 0, -668, END, 0 },
+      { "+01234", 8, 668, END, 0 },
+      { "+01234", 0, 668, END, 0 },
+      { "9223372036854775807", 10, INT64_MAX, END, 0},
+      { "-9223372036854775808", 10, INT64_MIN, END, 0},
+      { "9223372036854775808", 10, INT64_MAX, "8", ERANGE},  /* LLONG_MAX+1   */
+      { "-9223372036854775809", 10, INT64_MIN, "9", ERANGE}, /* LLONG_MIN-1   */
+      { "18446744073709551615", 10, INT64_MAX, "5", ERANGE}, /* 2*LLONG_MAX+1 */
+      { "-18446744073709551618", 10, INT64_MIN, "8", ERANGE},/* 2*LLONG_MIN-1 */
       { NULL }
    };
 
    for (i = 0; tests [i].str; i++) {
       errno = 0;
-      endptr = NULL;
 
       rv = bson_ascii_strtoll (tests [i].str, &endptr, tests [i].base);
-
-#if 0
-      fprintf (stderr, "rv=%"PRId64" errno=%d\n", rv, errno);
-#endif
-
       assert_cmpint (rv, ==, tests [i].rv);
       assert_cmpint (errno, ==, tests [i]._errno);
+      assert_cmpstr (endptr, tests [i].remaining);
    }
+#undef END
 }
 
 

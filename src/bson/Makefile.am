@@ -12,6 +12,7 @@ INST_H_FILES = \
 	src/bson/bson-clock.h \
 	src/bson/bson-compat.h \
 	src/bson/bson-context.h \
+	src/bson/bson-decimal128.h \
 	src/bson/bson-endian.h \
 	src/bson/bson-error.h \
 	src/bson/bson-iter.h \
@@ -57,7 +58,8 @@ libbson_la_CFLAGS = \
 	$(MAINTAINER_CFLAGS) \
 	$(OPTIMIZE_CFLAGS) \
 	$(COVERAGE_CFLAGS) \
-	$(PTHREAD_CFLAGS)
+	$(PTHREAD_CFLAGS) \
+	-fvisibility=hidden
 
 libbson_la_SOURCES = \
 	$(INST_H_FILES) \
@@ -67,6 +69,7 @@ libbson_la_SOURCES = \
 	src/bson/bson-atomic.c \
 	src/bson/bson-clock.c \
 	src/bson/bson-context.c \
+	src/bson/bson-decimal128.c \
 	src/bson/bson-error.c \
 	src/bson/bson-iter.c \
 	src/bson/bson-iso8601.c \

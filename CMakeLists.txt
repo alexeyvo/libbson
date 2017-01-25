@@ -32,7 +32,6 @@ set (CPACK_PACKAGE_VERSION_MAJOR ${BSON_MAJOR_VERSION})
 set (CPACK_PACKAGE_VERSION_MINOR ${BSON_MINOR_VERSION})
 
 include (CPack)
-
 TEST_BIG_ENDIAN(BSON_BIG_ENDIAN)
 
 # These need proper checks like automake.
@@ -58,6 +57,11 @@ if (NOT BSON_NEEDS_SET_OUTPUT_FORMAT)
   set(BSON_NEEDS_SET_OUTPUT_FORMAT 0)
 endif ()
 
+CHECK_FUNCTION_EXISTS(reallocf BSON_HAVE_REALLOCF)
+if (NOT BSON_HAVE_REALLOCF)
+  set(BSON_HAVE_REALLOCF 0)
+endif ()
+
 CHECK_STRUCT_HAS_MEMBER("struct timespec" tv_sec time.h BSON_HAVE_TIMESPEC)
 if (NOT BSON_HAVE_TIMESPEC)
   message(STATUS "    no timespec struct")
@@ -73,6 +77,7 @@ if (MSVC)
    set (BSON_HAVE_STDBOOL_H 0)
    set (BSON_HAVE_STRNLEN 0)
    set (BSON_EXTRA_ALIGN 1)
+   set (BSON_HAVE_SYSCALL_TID 0)
 else ()
    find_package (Threads)
 
@@ -90,6 +95,8 @@ else ()
       set(BSON_HAVE_STDBOOL_H 0)
    endif ()
    set (BSON_EXTRA_ALIGN 1)
+   CHECK_FUNCTION_EXISTS(syscall BSON_HAVE_SYSCALL_TID)
+   CHECK_INCLUDE_FILE(strings.h HAVE_STRINGS_H)
 endif ()
 
 set (BSON_HAVE_ATOMIC_32_ADD_AND_FETCH 1)
@@ -130,6 +137,7 @@ set (SOURCES
    ${SOURCE_DIR}/src/bson/bson-atomic.c
    ${SOURCE_DIR}/src/bson/bson-clock.c
    ${SOURCE_DIR}/src/bson/bson-context.c
+   ${SOURCE_DIR}/src/bson/bson-decimal128.c
    ${SOURCE_DIR}/src/bson/bson-error.c
    ${SOURCE_DIR}/src/bson/bson-iso8601.c
    ${SOURCE_DIR}/src/bson/bson-iter.c
@@ -165,6 +173,7 @@ set (HEADERS
    ${SOURCE_DIR}/src/bson/bson-clock.h
    ${SOURCE_DIR}/src/bson/bson-compat.h
    ${SOURCE_DIR}/src/bson/bson-context.h
+   ${SOURCE_DIR}/src/bson/bson-decimal128.h
    ${SOURCE_DIR}/src/bson/bson-endian.h
    ${SOURCE_DIR}/src/bson/bson-error.h
    ${SOURCE_DIR}/src/bson/bson.h
@@ -185,14 +194,11 @@ set (HEADERS
    ${SOURCE_DIR}/src/bson/bson-writer.h
 )
 
-if (MSVC)
-   set(BSON_SHARED_SOURCES ${SOURCES} ${PROJECT_SOURCE_DIR}/build/cmake/libbson.def)
-else()
-   set(BSON_SHARED_SOURCES ${SOURCES})
-endif()
-
-add_library(bson_shared SHARED ${BSON_SHARED_SOURCES} ${HEADERS})
+add_library(bson_shared SHARED ${SOURCES} ${HEADERS})
 add_library(bson_static STATIC ${SOURCES} ${HEADERS})
+
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+
 
 set_target_properties(bson_shared PROPERTIES COMPILE_DEFINITIONS "BSON_COMPILATION")
 set_target_properties(bson_static PROPERTIES COMPILE_DEFINITIONS "BSON_COMPILATION")
@@ -219,30 +225,47 @@ endif()
 if (ENABLE_TESTS)
     enable_testing()
 
-    add_executable(test-libbson
-       ${SOURCE_DIR}/tests/TestSuite.c
-       ${SOURCE_DIR}/tests/TestSuite.h
-       ${SOURCE_DIR}/tests/test-libbson.c
-       ${SOURCE_DIR}/tests/test-atomic.c
-       ${SOURCE_DIR}/tests/test-bson.c
-       ${SOURCE_DIR}/tests/test-endian.c
-       ${SOURCE_DIR}/tests/test-clock.c
-       ${SOURCE_DIR}/tests/test-error.c
-       ${SOURCE_DIR}/tests/test-iso8601.c
-       ${SOURCE_DIR}/tests/test-iter.c
-       ${SOURCE_DIR}/tests/test-json.c
-       ${SOURCE_DIR}/tests/test-oid.c
-       ${SOURCE_DIR}/tests/test-reader.c
-       ${SOURCE_DIR}/tests/test-string.c
-       ${SOURCE_DIR}/tests/test-utf8.c
-       ${SOURCE_DIR}/tests/test-value.c
-       ${SOURCE_DIR}/tests/test-version.c
-       ${SOURCE_DIR}/tests/test-writer.c
-       ${SOURCE_DIR}/tests/test-bcon-basic.c
-       ${SOURCE_DIR}/tests/test-bcon-extract.c
+    add_definitions("-DBINARY_DIR=\"${SOURCE_DIR}/tests/binary\"")
+    add_definitions("-DJSON_DIR=\"${SOURCE_DIR}/tests/json\"")
+
+    set (BSON_TEST_SOURCES
+         ${SOURCE_DIR}/tests/TestSuite.c
+         ${SOURCE_DIR}/tests/TestSuite.h
+         ${SOURCE_DIR}/tests/json/type/decimal128/decimal128-1.json
+         ${SOURCE_DIR}/tests/json/type/decimal128/decimal128-2.json
+         ${SOURCE_DIR}/tests/json/type/decimal128/decimal128-3.json
+         ${SOURCE_DIR}/tests/json/type/decimal128/decimal128-4.json
+         ${SOURCE_DIR}/tests/json/type/decimal128/decimal128-5.json
+         ${SOURCE_DIR}/tests/json/type/decimal128/decimal128-6.json
+         ${SOURCE_DIR}/tests/json/type/decimal128/decimal128-7.json
+         ${SOURCE_DIR}/tests/test-libbson.c
+         ${SOURCE_DIR}/tests/test-atomic.c
+         ${SOURCE_DIR}/tests/test-bson.c
+         ${SOURCE_DIR}/tests/test-endian.c
+         ${SOURCE_DIR}/tests/test-clock.c
+         ${SOURCE_DIR}/tests/test-decimal128.c
+         ${SOURCE_DIR}/tests/test-error.c
+         ${SOURCE_DIR}/tests/test-iso8601.c
+         ${SOURCE_DIR}/tests/test-iter.c
+         ${SOURCE_DIR}/tests/test-json.c
+         ${SOURCE_DIR}/tests/test-oid.c
+         ${SOURCE_DIR}/tests/test-reader.c
+         ${SOURCE_DIR}/tests/test-string.c
+         ${SOURCE_DIR}/tests/test-type.c
+         ${SOURCE_DIR}/tests/test-utf8.c
+         ${SOURCE_DIR}/tests/test-value.c
+         ${SOURCE_DIR}/tests/test-version.c
+         ${SOURCE_DIR}/tests/test-writer.c
+         ${SOURCE_DIR}/tests/test-bcon-basic.c
+         ${SOURCE_DIR}/tests/test-bcon-extract.c
+         ${SOURCE_DIR}/tests/json-test.c
+         ${SOURCE_DIR}/tests/json-test.c
+         ${SOURCE_DIR}/tests/json-test.h
     )
 
-    target_link_libraries(test-libbson bson_static)
+    add_executable (test-libbson ${BSON_TEST_SOURCES})
+
+    target_link_libraries(test-libbson bson_shared bson_static)
     add_test(NAME test-libbson COMMAND test-libbson)
 
     file(COPY ${SOURCE_DIR}/tests/binary ${SOURCE_DIR}/tests/json

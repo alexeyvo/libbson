@@ -80,6 +80,15 @@
 
 
 /*
+ * Define to 1 if you have reallocf available on your platform.
+ */
+#define BSON_HAVE_REALLOCF @BSON_HAVE_REALLOCF@
+#if BSON_HAVE_REALLOCF != 1
+# undef BSON_HAVE_REALLOCF
+#endif
+
+
+/*
  * Define to 1 if you have _set_output_format (VS2013 and older).
  */
 #define BSON_NEEDS_SET_OUTPUT_FORMAT @BSON_NEEDS_SET_OUTPUT_FORMAT@
@@ -102,6 +111,15 @@
 #define BSON_EXTRA_ALIGN @BSON_EXTRA_ALIGN@
 #if BSON_EXTRA_ALIGN != 1
 # undef BSON_EXTRA_ALIGN
+#endif
+
+
+/*
+ * Define to 1 if you have SYS_gettid syscall
+ */
+#define BSON_HAVE_SYSCALL_TID @BSON_HAVE_SYSCALL_TID@
+#if BSON_HAVE_SYSCALL_TID != 1
+# undef BSON_HAVE_SYSCALL_TID
 #endif
 
 
